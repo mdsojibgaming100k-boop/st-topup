@@ -42,10 +42,10 @@
         appId: "f02ea885-f5f3-4c5e-9baa-d91066b14653",
         allowLocalhostAsSecureOrigin: true
       });
-      // কাস্টমার ট্যাগ সেট করা
+      // সাধারণ কাস্টমারদের ট্যাগ সেট করা
       await OneSignal.User.addTag("role", "customer");
     } catch(err) {
-      console.warn("OneSignal Init:", err);
+      console.warn("OneSignal User Init:", err);
     }
   });
 </script>
@@ -1414,35 +1414,62 @@
         const modal = document.getElementById('notifPermissionModal');
         if (modal) modal.style.display = 'none';
 
-        if (!("Notification" in window)) {
-            return Swal.fire('ওয়েব মোড', 'আপনার ব্রাউজারে নোটিফিকেশন সাপোর্ট করে না', 'info');
+        // ১. যদি ইউজার APK অ্যাপের ভেতরে থাকে
+        const isWebView = /(wv|Android.*Version\/[\d.]+)/i.test(navigator.userAgent) && !window.chrome;
+        if (isWebView || !("Notification" in window)) {
+            return Swal.fire({
+                icon: 'info',
+                title: 'Google Chrome ব্রাউজারে খুলুন',
+                text: 'পুশ নোটিফিকেশন সক্রিয় করতে ওয়েবসাইটটি ফোনের Google Chrome ব্রাউজারে ওপেন করুন।'
+            });
+        }
+
+        // ২. ব্রাউজারে ব্লক করা থাকলে সঠিক নির্দেশনা
+        if (Notification.permission === "denied") {
+            return Swal.fire({
+                icon: 'warning',
+                title: 'নোটিফিকেশন ব্লক করা আছে!',
+                html: `Chrome ব্রাউজারে এই সাইটের নোটিফিকেশন Blocked করা আছে。<br><br>
+                <b>চালু করার নিয়ম:</b><br>
+                ব্রাউজারের উপরে তালার চিহ্নে চাপ দিয়ে <b>Permissions > Notifications: Allow</b> করুন এবং পেজ রিলোড দিন।`
+            });
         }
 
         try {
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-                playNotificationChime();
+            // ৩. সরাসরি OneSignal v16 দিয়ে পারমিশন চাওয়া ও সাবস্ক্রিপশন অন করা
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            OneSignalDeferred.push(async function(OneSignal) {
+                try {
+                    await OneSignal.Notifications.requestPermission();
+                    await OneSignal.User.addTag("role", "customer");
+                    
+                    if (OneSignal.User && OneSignal.User.PushSubscription) {
+                        await OneSignal.User.PushSubscription.optIn();
+                    }
 
-                if (window.OneSignalDeferred) {
-                    window.OneSignalDeferred.push(async function(OneSignal) {
-                        try {
-                            await OneSignal.Notifications.requestPermission();
-                        } catch(e){}
-                    });
+                    if (Notification.permission === "granted") {
+                        playNotificationChime();
+                        updatePushBannerStatus();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'নোটিফিকেশন সক্রিয় হয়েছে! 🔔',
+                            text: 'সকল টপ-আপ আপডেট ও অফার এখন সরাসরি ফোনের পর্দায় পাবেন।',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        updatePushBannerStatus();
+                    }
+                } catch(err) {
+                    console.error("OneSignal Prompt Error:", err);
+                    updatePushBannerStatus();
                 }
+            });
 
-                updatePushBannerStatus();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'নোটিফিকেশন সক্রিয় হয়েছে! 🔔',
-                    text: 'সকল টপ-আপ আপডেট ও অফার এখন সরাসরি ফোনের স্ক্রিনে পাবেন।',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-            } else {
-                updatePushBannerStatus();
-            }
-        } catch(e) {}
+        } catch(e) {
+            console.error(e);
+            updatePushBannerStatus();
+        }
     };
 
     window.forceRequestNotificationPermission = function() {
