@@ -23,7 +23,7 @@
         })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- OneSignal Official Web Push SDK v16 (Live Notification Active in Background) -->
+    <!-- OneSignal Official Web Push SDK v16 (Live Notification Active) -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer crossorigin="anonymous"></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -34,13 +34,9 @@
             safari_web_id: "web.onesignal.auto.3cda868c-95ba-4dc0-a9c6-5ad5b099bc53",
             allowLocalhostAsSecureOrigin: true,
             notifyButton: {
-              enable: false
+              enable: true
             }
           });
-          // ব্যাকগ্রাউন্ড ডিভাইসে পারমিশন অটো রিকোয়েস্ট
-          if (OneSignal.Notifications) {
-            await OneSignal.Notifications.requestPermission();
-          }
         } catch(err) {
           console.warn("OneSignal Webview Init:", err);
         }
@@ -1060,29 +1056,8 @@
     // =========================================================================
     // 🔔 TOUR FF EXACT LIVE BACKGROUND PUSH & SUBSCRIBER ENGINE
     // =========================================================================
-    const TOUR_ONESIGNAL_APP_ID = "7398e8c1-9373-4680-bc63-27c413779609";
+    const TOUR_ONESIGNAL_APP_ID = "f02ea885-f5f3-4c5e-9baa-d91066b14653";
 
-    // ১. সাউন্ড সিন্থেসাইজার (মিষ্টি নোটিফিকেশন চিম)
-    function playNotificationChime() {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-            osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.2, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.35);
-        } catch(e) {}
-    }
-
-    // ২. ডিভাইসে সিস্টেম পুশ নোটিফিকেশন ফায়ার (Android APK & Browser)
     function fireDevicePushNotification(title, message, notifId, bannerImg = '') {
         if (!("Notification" in window) || Notification.permission !== "granted") return;
 
@@ -1111,12 +1086,10 @@
         }
     }
 
-    // ৩. ফায়ারস্টোর রিয়েলটাইম লিসেনার (অ্যাপ ওপেন থাকলে ইনস্ট্যান্ট শো করবে)
     function listenRealtimeNotifications() {
         db.collection('notifications').onSnapshot(snapshot => {
             const pushedKey = currentUser ? `topup_pushed_${currentUser.uid}` : 'topup_pushed_guest';
             let pushedIds = JSON.parse(localStorage.getItem(pushedKey) || '[]');
-            let hasNew = false;
 
             snapshot.docChanges().forEach(change => {
                 if (change.type === "added") {
@@ -1131,61 +1104,23 @@
 
                             fireDevicePushNotification(nTitle, nMsg, n.id, nImg);
 
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire({
-                                    toast: true,
-                                    position: 'top-end',
-                                    icon: 'info',
-                                    title: nTitle,
-                                    text: nMsg,
-                                    timer: 6000,
-                                    timerProgressBar: true,
-                                    showConfirmButton: false
-                                });
-                            }
-
                             pushedIds.push(n.id);
-                            hasNew = true;
                         }
                     }
                 }
             });
 
             localStorage.setItem(pushedKey, JSON.stringify(pushedIds.slice(-50)));
-            if (hasNew) playNotificationChime();
         });
     }
+    listenRealtimeNotifications();
 
-    // ৪. OneSignal ব্যাকগ্রাউন্ড সাবস্ক্রিপশন নিশ্চিতকরণ
-    function initOneSignalEngine() {
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(async function(OneSignal) {
-            try {
-                if (currentUser) {
-                    await OneSignal.login(currentUser.uid);
-                    await OneSignal.User.addTag("user_role", "customer");
-                    if (currentUser.email) await OneSignal.User.addTag("user_email", currentUser.email);
-                }
-                if (OneSignal.Notifications) {
-                    await OneSignal.Notifications.requestPermission();
-                }
-            } catch(e) {
-                console.warn("OneSignal Registration Error:", e);
-            }
-        });
-
-        // ব্রাউজার নোটিফিকেশন পারমিশন অটো ট্রিগার
-        if ("Notification" in window && Notification.permission === "default") {
-            setTimeout(() => {
-                Notification.requestPermission().then(perm => {
-                    if(perm === "granted") playNotificationChime();
-                });
-            }, 1800);
-        }
-
-        listenRealtimeNotifications();
+    // ব্রাউজার নোটিফিকেশন পারমিশন অটো ট্রিগার (TOUR FF হুবহু মেথড)
+    if ("Notification" in window && Notification.permission === "default") {
+        setTimeout(() => {
+            Notification.requestPermission();
+        }, 1500);
     }
-    initOneSignalEngine();
 
     // ⚡ ফাস্ট ও নন-ব্লকিং OneSignal ডিসপ্যাচার (হ্যাং হওয়া প্রতিরোধক)
     async function executeOneSignalPost(payload, apiKey) {
