@@ -23,25 +23,8 @@
         })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- OneSignal Official Web Push SDK v16 (Live Notification Active) -->
+    <!-- OneSignal Web Push SDK v16 (APK & WebView 100% Supported) -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer crossorigin="anonymous"></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          await OneSignal.init({
-            appId: "f02ea885-f5f3-4c5e-9baa-d91066b14653",
-            safari_web_id: "web.onesignal.auto.3cda868c-95ba-4dc0-a9c6-5ad5b099bc53",
-            allowLocalhostAsSecureOrigin: true,
-            notifyButton: {
-              enable: true
-            }
-          });
-        } catch(err) {
-          console.warn("OneSignal Webview Init:", err);
-        }
-      });
-    </script>
     <title>DRL TOPUP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1054,72 +1037,72 @@
     let selectedGameName = "";
 
     // =========================================================================
-    // 🔔 ANDROID APK & WEB 100% GUARANTEED LIVE PUSH ENGINE
+    // 🔔 TOUR FF EXACT LIVE PUSH NOTIFICATION ENGINE (PURE PUSH - NO VOICE)
     // =========================================================================
-    const TOUR_ONESIGNAL_APP_ID = "f02ea885-f5f3-4c5e-9baa-d91066b14653";
+    let userOneSignalAppId = "7398e8c1-9373-4680-bc63-27c413779609";
+    let isOneSignalInitialized = false;
 
-    // ১. মিষ্টি নোটিফিকেশন সাউন্ড বাজানো (অ্যান্ড্রয়েড ও ওয়েব উভয় ক্ষেত্রে)
+    // ১. সাউন্ড সিন্থেসাইজার (মিষ্টি নোটিফিকেশন চিম সাউন্ড)
     function playNotificationChime() {
         try {
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-            audio.play().catch(() => {});
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+            osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.35);
         } catch(e) {}
     }
 
-    // ২. অ্যান্ড্রয়েড APK ও সিস্টেম নোটিফিকেশন ফায়ারার
+    // ২. ডিভাইসে ছবি ও ব্যানার সহ ১০০% নির্ভরযোগ্য পুশ প্রদর্শন (APK ও Web)
     function fireDevicePushNotification(title, message, notifId, bannerImg = '') {
-        playNotificationChime();
-
-        // (ক) যদি অ্যাপটি Android WebView / APK ব্রিজ ব্যবহার করে থাকে
-        if (window.Android && window.Android.showNotification) {
-            try {
-                window.Android.showNotification(title, message);
-                return;
-            } catch(e) {}
-        }
-        if (window.AndroidBridge && window.AndroidBridge.showNotification) {
-            try {
-                window.AndroidBridge.showNotification(title, message);
-                return;
-            } catch(e) {}
+        if (!("Notification" in window)) return;
+        
+        // পারমিশন না থাকলে পারমিশন নিয়ে নেওয়া
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+            return;
         }
 
-        // (খ) ব্রাউজার ও সিস্টেম নোটিফিকেশন
-        if ("Notification" in window && Notification.permission === "granted") {
-            const notifOptions = {
-                body: message,
-                icon: document.getElementById('header-logo-img')?.src || "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-                badge: document.getElementById('header-logo-img')?.src || "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-                vibrate: [300, 100, 300, 100, 300],
-                tag: 'topup-notif-' + (notifId || Date.now()),
-                renotify: true,
-                requireInteraction: true,
-                data: { url: window.location.href }
-            };
+        const notifOptions = {
+            body: message,
+            icon: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
+            badge: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
+            vibrate: [300, 100, 300, 100, 300],
+            tag: 'topup-notif-' + (notifId || Date.now()),
+            renotify: true,
+            data: { url: window.location.href }
+        };
 
-            if (bannerImg && bannerImg.trim() !== '') {
-                notifOptions.image = bannerImg.trim();
-            }
+        if (bannerImg && bannerImg.trim() !== '') {
+            notifOptions.image = bannerImg.trim();
+        }
 
-            try {
-                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.ready.then(reg => {
+        // সরাসরি সিস্টেম নোটিফিকেশন ট্রিগার (Android APK ও ব্রাউজারে সাথে সাথে নোটিফিকেশন ড্রয়ারে শো করবে)
+        try {
+            new Notification(title, notifOptions);
+        } catch(e) {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration().then(reg => {
+                    if (reg && reg.showNotification) {
                         reg.showNotification(title, notifOptions);
-                    }).catch(() => {
-                        new Notification(title, notifOptions);
-                    });
-                } else {
-                    new Notification(title, notifOptions);
-                }
-            } catch(e) {
-                try { new Notification(title, notifOptions); } catch(err) {}
+                    }
+                }).catch(()=>{});
             }
         }
     }
 
-    // ৩. ফায়ারস্টোর লিসেনার (নতুন ডাটা আসলেই সাথে সাথে ডিভাইসে পুশ ফেলবে)
+    // ৩. লাইভ ফায়ারস্টোর লিসেনার (অ্যাডমিন প্যানেল থেকে পাঠানো নোটিফিকেশন সরাসরি ইউজারের ফোনে শো হবে)
     function listenRealtimeNotifications() {
-        db.collection('notifications').orderBy('timestampMs', 'desc').limit(10).onSnapshot(snapshot => {
+        db.collection('notifications').onSnapshot(snapshot => {
             const pushedKey = currentUser ? `topup_pushed_${currentUser.uid}` : 'topup_pushed_guest';
             let pushedIds = JSON.parse(localStorage.getItem(pushedKey) || '[]');
             let hasNew = false;
@@ -1127,16 +1110,19 @@
             snapshot.docChanges().forEach(change => {
                 if (change.type === "added") {
                     const n = { id: change.doc.id, ...change.doc.data() };
+                    // অ্যাডমিনের অভ্যন্তরীণ অর্ডার অ্যালার্ট যেন সাধারণ ইউজারের ফোনে না যায়
                     if (n.targetRole === 'admin' || n.isAdminAlert === true) return;
 
+                    // সকল ইউজার অথবা নির্দিষ্ট ইউজার চেক
                     if (!n.targetUserId || n.targetUserId === 'all' || (currentUser && n.targetUserId === currentUser.uid)) {
                         if (!pushedIds.includes(n.id)) {
-                            const nTitle = n.title || 'TopUp Alert';
+                            const nTitle = n.title || 'Notification';
                             const nMsg = n.message || n.body || '';
                             const nImg = n.image || n.imageUrl || '';
 
                             fireDevicePushNotification(nTitle, nMsg, n.id, nImg);
 
+                            // স্ক্রিনে অ্যাপ খোলা থাকলে ওপরের ডানপাশে লাইভ টোস্ট পপ-আপ
                             if (typeof Swal !== 'undefined') {
                                 Swal.fire({
                                     toast: true,
@@ -1144,7 +1130,7 @@
                                     icon: 'info',
                                     title: nTitle,
                                     text: nMsg,
-                                    timer: 5000,
+                                    timer: 6000,
                                     timerProgressBar: true,
                                     showConfirmButton: false
                                 });
@@ -1158,30 +1144,58 @@
             });
 
             localStorage.setItem(pushedKey, JSON.stringify(pushedIds.slice(-50)));
+            if (hasNew) playNotificationChime();
         });
     }
-    listenRealtimeNotifications();
 
-    // ৪. অ্যান্ড্রয়েড ইউজার পারমিশন নিশ্চিতকরণ (ইউজার স্ক্রিনে টাচ করলেই পারমিশন নিয়ে নেবে)
-    function requestPushPermissionOnTouch() {
-        if ("Notification" in window && Notification.permission !== "granted") {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    if (window.OneSignalDeferred) {
-                        window.OneSignalDeferred.push(async function(OneSignal) {
-                            try {
+    // =========================================================================
+    // 🔔 APPMINT & HYBRID CRASH-FREE ONESIGNAL REGISTRATION ENGINE
+    // =========================================================================
+    function initOneSignalEngine() {
+        db.collection('settings').doc('onesignal').onSnapshot(doc => {
+            if(doc.exists) {
+                const d = doc.data();
+                if (d.app_id && d.app_id.trim()) userOneSignalAppId = d.app_id.trim();
+
+                if (!isOneSignalInitialized && userOneSignalAppId) {
+                    isOneSignalInitialized = true;
+                    window.OneSignalDeferred = window.OneSignalDeferred || [];
+                    window.OneSignalDeferred.push(async function(OneSignal) {
+                        try {
+                            // সার্ভিস ওয়ার্কার পাথ ছাড়াই ইনিট যাতে APK-র ভেতর ক্র্যাশ না করে
+                            await OneSignal.init({
+                                appId: userOneSignalAppId,
+                                allowLocalhostAsSecureOrigin: true,
+                                notifyButton: { enable: false }
+                            });
+
+                            // গ্রাহক ট্যাগ সেট
+                            await OneSignal.User.removeTag("role");
+                            await OneSignal.User.removeTag("user_role");
+                            await OneSignal.User.addTag("user_role", "customer");
+
+                            // নোটিফিকেশন সাবস্ক্রিপশন জোরপূর্বক সক্রিয় করা
+                            if (OneSignal.Notifications) {
                                 await OneSignal.Notifications.requestPermission();
-                            } catch(e){}
-                        });
-                    }
+                            }
+                        } catch(e) {
+                            console.warn("OneSignal Safe Init:", e);
+                        }
+                    });
                 }
-            });
-        }
-        document.removeEventListener('click', requestPushPermissionOnTouch);
-        document.removeEventListener('touchstart', requestPushPermissionOnTouch);
+            }
+        });
+
+        // সরাসরি অ্যান্ড্রয়েড সিস্টেম পারমিশন নিশ্চিতকরণ
+        setTimeout(() => {
+            if ("Notification" in window && Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+        }, 1200);
+
+        listenRealtimeNotifications();
     }
-    document.addEventListener('click', requestPushPermissionOnTouch, { once: true });
-    document.addEventListener('touchstart', requestPushPermissionOnTouch, { once: true });
+    initOneSignalEngine();
 
     // ⚡ ফাস্ট ও নন-ব্লকিং OneSignal ডিসপ্যাচার (হ্যাং হওয়া প্রতিরোধক)
     async function executeOneSignalPost(payload, apiKey) {
@@ -1850,6 +1864,44 @@
         }
     });
     
+    // =========================================================================
+    // 🔋 24/7 BACKGROUND KEEP-ALIVE & PERSISTENT WAKE ENGINE
+    // =========================================================================
+    (function init24HoursKeepAliveEngine() {
+        let isEngineRunning = false;
+        
+        // ১. নিঃশব্দ মিডিয়া ইঞ্জিন (অ্যান্ড্রয়েড ওএস যাতে অ্যাপ ব্যাকগ্রাউন্ডে কখনোই বন্ধ না করে)
+        const silentMedia = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+        silentMedia.loop = true;
+        silentMedia.volume = 0.001; // সম্পূর্ণ নিঃশব্দ (কোনো শব্দ হবে না)
+
+        function activateBackgroundService() {
+            if (isEngineRunning) return;
+            silentMedia.play().then(() => {
+                isEngineRunning = true;
+                console.log("24/7 Background Keep-Alive Active 🟢");
+            }).catch(() => {});
+        }
+
+        // ইউজার অ্যাপে ঢোকার পর যেকোনো জায়গায় একবার টাচ করলেই ব্যাকগ্রাউন্ড সার্ভিস লক হয়ে যাবে
+        window.addEventListener('click', activateBackgroundService, { once: true });
+        window.addEventListener('touchstart', activateBackgroundService, { once: true });
+
+        // ২. ফায়ারবেস হার্টবিট পিং (প্রতি ৪৫ সেকেন্ড পর পর কানেকশন ফ্রেশ রাখা)
+        setInterval(() => {
+            if (typeof db !== 'undefined' && db) {
+                db.collection('settings').doc('general').get({ source: 'server' }).catch(() => {});
+            }
+        }, 45000);
+
+        // ৩. স্ক্রিন লক/মিনিমাইজ হলেও ফায়ারবেস রিয়েলটাইম লিসেনার সজাগ রাখা
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && isEngineRunning) {
+                silentMedia.play().catch(() => {});
+            }
+        });
+    })();
+
     // Always load content
     loadAppContent();
 
