@@ -1293,18 +1293,34 @@
             :root {
                 --theme-color: ${hex};
             }
-            .bg-sky-500, .bg-sky-600 {
+            /* হেডার, বাটন ও নোটিশ বার */
+            .bg-sky-500, .bg-sky-600, #header-balance-container, #notice-section .bg-sky-500 {
                 background-color: ${hex} !important;
             }
-            .hover\\:bg-sky-700:hover {
-                filter: brightness(0.9);
-            }
-            .text-sky-600, .text-sky-500, .active-tab {
+            .text-sky-600, .text-sky-500, .active-tab, .nav-item.active-tab {
                 color: ${hex} !important;
             }
             .border-sky-500, .border-sky-600, .focus\\:border-sky-500:focus {
                 border-color: ${hex} !important;
             }
+
+            /* 📞 কল/সাপোর্ট বাটন ও হেল্প টেক্সট কালার চেঞ্জ */
+            #fab-toggler, #fab-help-text {
+                background-color: ${hex} !important;
+            }
+            #fab-toggler:hover {
+                filter: brightness(0.9);
+            }
+
+            /* 🛒 Buy Now বাটন এবং রিচার্জ স্টেপ ব্যাজ */
+            button[onclick="processOrder()"] {
+                background-color: ${hex} !important;
+            }
+            #topup-sec .bg-red-600, #topup-sec .bg-\\[\\#4a148c\\] {
+                background-color: ${hex} !important;
+            }
+
+            /* প্রোডাক্ট কার্ড ও বর্ডার শ্যাডো */
             .product-card.selected {
                 border-color: ${hex} !important;
                 background-color: ${hex}15 !important;
@@ -1312,18 +1328,16 @@
             .product-card.selected .product-bullet {
                 background-color: ${hex} !important;
             }
-            .nav-item.active-tab {
-                color: ${hex} !important;
-            }
-            #header-balance-container {
-                background-color: ${hex} !important;
-                border-color: ${hex} !important;
-            }
-            #notice-section .bg-sky-500 {
-                background-color: ${hex} !important;
-            }
             .shadow-\\[0_2px_0px_0px_rgba\\(3\\,169\\,244\\,0\\.5\\)\\] {
                 box-shadow: 0 2px 0px 0px ${hex}80 !important;
+            }
+
+            /* অ্যাকাউন্ট সেকশন বর্ডার ও টেক্সট */
+            .border-\\[\\#2196F3\\] {
+                border-color: ${hex} !important;
+            }
+            .text-\\[\\#2196F3\\], .text-\\[\\#1976d2\\] {
+                color: ${hex} !important;
             }
         `;
     }
@@ -1762,7 +1776,7 @@
                 return;
             }
 
-            // নতুন ইউজার হলে ডাটাবেসে একাউন্ট তৈরি (Sign Up)
+            // নতুন ইউজার হলে অ্যাকাউন্ট তৈরি, আর পুরাতন ইউজার হলে জিমেইলের নতুন ছবি সিঙ্ক করা
             if (!userSnap.exists) {
                 await userRef.set({
                     name: user.displayName || (user.email ? user.email.split('@')[0] : 'User'),
@@ -1772,6 +1786,11 @@
                     photoURL: user.photoURL || '',
                     createdAt: new Date()
                 });
+            } else if (user.photoURL) {
+                // জিমেইলের প্রোফাইল পিকচার ডাটাবেসে আপডেট
+                await userRef.update({
+                    photoURL: user.photoURL
+                }).catch(console.warn);
             }
 
             Swal.fire({
@@ -1870,15 +1889,17 @@
                 const accBalCardEl = document.getElementById('acc-balance-card');
                 const accPinEl = document.getElementById('acc-support-pin');
                 
-                // Profile Image / Initial Logic
+                // Profile Image: জিমেইলের ছবি অথবা প্রথম অক্ষর দেখানো
                 const imgContainer = document.getElementById('acc-profile-img');
                 const initialContainer = document.getElementById('profile-initial');
+                const userPhoto = data.photoURL || (auth.currentUser && auth.currentUser.photoURL);
                 
-                if(data.photoURL) {
-                    imgContainer.src = data.photoURL;
+                if (userPhoto && imgContainer && initialContainer) {
+                    imgContainer.src = userPhoto;
+                    imgContainer.referrerPolicy = "no-referrer";
                     imgContainer.classList.remove('hidden');
                     initialContainer.classList.add('hidden');
-                } else {
+                } else if (initialContainer && imgContainer) {
                     imgContainer.classList.add('hidden');
                     initialContainer.classList.remove('hidden');
                     initialContainer.innerText = userName.charAt(0).toUpperCase();
@@ -2014,18 +2035,15 @@
         const listContainer = document.getElementById('services-list');
         gamesData = {};
 
-        // ১. পূর্বের ক্যাশ থাকলে সাথে সাথে ০ সেকেন্ডে স্ক্রিনে দেখাবে
+        // ⚡ ১. সরাসরি HTML ক্যাশ থেকে ০.০১ সেকেন্ডে স্ক্রিনে রেন্ডার (কোনো লোডিং স্পিনার ছাড়া)
         try {
-            const cachedGamesData = localStorage.getItem('drl_cached_games');
-            const cachedCatMap = localStorage.getItem('drl_cached_cats');
-            const cachedUncat = localStorage.getItem('drl_cached_uncat');
-            if (cachedGamesData && cachedCatMap) {
-                gamesData = JSON.parse(cachedGamesData);
-                const parsedCats = new Map(JSON.parse(cachedCatMap));
-                const parsedUncat = JSON.parse(cachedUncat || '[]');
-                renderGamesUI(parsedCats, parsedUncat);
-            } else {
-                listContainer.innerHTML = `<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-sky-500"></i> Loading Games...</div>`;
+            const cachedHtml = localStorage.getItem('drl_games_html_cache');
+            const cachedGames = localStorage.getItem('drl_cached_games');
+            if (cachedHtml && listContainer) {
+                listContainer.innerHTML = cachedHtml;
+            }
+            if (cachedGames) {
+                gamesData = JSON.parse(cachedGames);
             }
         } catch(e) {}
 
@@ -2062,11 +2080,12 @@
 
             renderGamesUI(categoriesMap, uncategorizedGames);
 
-            // ক্যাশ সংরক্ষণ
+            // সুপারফাস্ট HTML ও ডাটা ক্যাশ সংরক্ষণ
             try {
                 localStorage.setItem('drl_cached_games', JSON.stringify(gamesData));
-                localStorage.setItem('drl_cached_cats', JSON.stringify(Array.from(categoriesMap.entries())));
-                localStorage.setItem('drl_cached_uncat', JSON.stringify(uncategorizedGames));
+                if (listContainer) {
+                    localStorage.setItem('drl_games_html_cache', listContainer.innerHTML);
+                }
             } catch(e) {}
 
         } catch (error) {
@@ -2160,21 +2179,26 @@
         // গিল্ড গ্লরি বটের জন্য ইনপুট লেবেল ও UID চেকার পরিবর্তন
         const idLabel = document.querySelector('#player-id-section label');
         const idInput = document.getElementById('game-player-id');
-        const uidCheckBtn = document.getElementById('uidCheckBtn');
+        const checkBtnEl = document.getElementById('uidCheckBtn');
+
         if (selectedGameType === 'guild-glory') {
             if(idLabel) idLabel.innerText = "Player তথ্য / WhatsApp নম্বর";
             if(idInput) idInput.placeholder = "আপনার WhatsApp নম্বর বা গিল্ড তথ্য লিখুন...";
-            if(uidCheckBtn) uidCheckBtn.style.display = 'none';
+            if(checkBtnEl) checkBtnEl.style.display = 'none';
         } else {
             if(idLabel) idLabel.innerText = "Player Id";
             if(idInput) idInput.placeholder = "Player Id";
-            if(uidCheckBtn) uidCheckBtn.style.display = 'block';
+            if(checkBtnEl) {
+                checkBtnEl.style.display = 'block';
+                checkBtnEl.innerHTML = "Click to check player name";
+                checkBtnEl.classList.remove("bg-black", "bg-emerald-600", "bg-red-600");
+                checkBtnEl.classList.add("bg-gradient-to-r", "from-red-700", "to-orange-500");
+            }
         }
 
         const rulesBox = document.getElementById('game-rules-box');
         const rulesText = document.getElementById('game-rules-text');
         if(gamesData[gameId] && gamesData[gameId].rules) {
-            // Split rules by newline or period for bullet points if needed, or just set innerText
             const rules = gamesData[gameId].rules.split('\n');
             let rulesHtml = "";
             rules.forEach(rule => {
@@ -2185,11 +2209,6 @@
         } else {
             rulesBox.classList.add('hidden');
         }
-        
-        const uidCheckBtn = document.getElementById('uidCheckBtn');
-        uidCheckBtn.innerHTML = "Click to check player name";
-        uidCheckBtn.classList.remove("bg-black");
-        uidCheckBtn.classList.add("bg-gradient-to-r", "from-red-700", "to-orange-500");
 
         showSec('topup');
         
