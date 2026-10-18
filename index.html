@@ -1380,8 +1380,22 @@
                 document.getElementById('home-telegram').href = tgLink;
                 
                 const homeAppBtn = document.getElementById('home-app-dl');
-                homeAppBtn.href = appLink;
-                homeAppBtn.onclick = (e) => { if(appLink === "#") { e.preventDefault(); Swal.fire('Notice', 'App coming soon!', 'info'); } };
+                const cleanAppLink = (appLink && appLink.trim() !== "" && appLink.trim() !== "#") ? appLink.trim() : "#";
+                
+                if (homeAppBtn) {
+                    homeAppBtn.href = cleanAppLink;
+                    homeAppBtn.onclick = (e) => { 
+                        if(cleanAppLink === "#" || !cleanAppLink.startsWith('http')) { 
+                            e.preventDefault(); 
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'অ্যাপ আসছে!',
+                                text: 'অ্যাপটি শীঘ্রই ডাউনলোড করার জন্য উন্মুক্ত করা হবে।',
+                                confirmButtonColor: '#0284c7'
+                            }); 
+                        } 
+                    };
+                }
 
                 document.getElementById('link-whatsapp').href = waLink;
                 document.getElementById('link-telegram').href = tgLink;
