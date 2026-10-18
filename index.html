@@ -2335,36 +2335,56 @@
         }
     }
 
-    function uidCheck() {
-        const uid = document.getElementById("game-player-id").value;
+    async function uidCheck() {
+        const uidInput = document.getElementById("game-player-id");
+        const uid = uidInput ? uidInput.value.trim() : "";
         const box = document.getElementById("uidCheckBtn");
 
         if (!uid) {
-            box.innerHTML = "Please enter a UID!";
-            box.classList.remove("bg-gradient-to-r", "from-red-700", "to-orange-500");
-            box.classList.add("bg-black");
+            box.innerHTML = "⚠️ Please enter a UID!";
+            box.classList.remove("bg-gradient-to-r", "from-red-700", "to-orange-500", "bg-emerald-600");
+            box.classList.add("bg-red-600");
             return;
         }
 
-        box.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Name is loading...';
-        box.classList.remove("bg-gradient-to-r", "from-red-700", "to-orange-500");
-        box.classList.add("bg-black");
+        // লোডিং এনিমেশন
+        box.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Checking Name...';
+        box.classList.remove("bg-gradient-to-r", "from-red-700", "to-orange-500", "bg-emerald-600", "bg-red-600");
+        box.classList.add("bg-slate-800");
 
-        const apiURL = `https://bhauxinfo2.vercel.app/bhau?uid=${uid}&region=BD&key=YOUR_API_KEY_HERE`;
+        try {
+            // আপনার দেওয়া নতুন Aura FF API
+            const apiURL = `https://auraffxserverinfocheckerapi.onrender.com/api/player?uid=${encodeURIComponent(uid)}`;
+            const res = await fetch(apiURL);
+            const data = await res.json();
 
-        fetch(apiURL)
-            .then(res => res.json())
-            .then(data => {
-                let name =
-                    (data.basicInfo && data.basicInfo.nickname) ||
-                    data.nickname ||
-                    "Invalid UID ";
+            // API থেকে নাম সঠিকভাবে ফিল্টার করা
+            let playerName = 
+                data.name || 
+                data.nickname || 
+                data.AccountName || 
+                (data.AccountInfo && data.AccountInfo.AccountName) || 
+                (data.basicInfo && data.basicInfo.nickname) || 
+                (data.data && (data.data.name || data.data.nickname || data.data.AccountName || (data.data.AccountInfo && data.data.AccountInfo.AccountName))) ||
+                (data.player && (data.player.name || data.player.nickname)) ||
+                data.player_name;
 
-                box.innerHTML = name; 
-            })
-            .catch(() => {
-                box.innerHTML = "No nickname found!";
-            });
+            if (playerName) {
+                // বাটনটিতে শুধু নাম শো করবে
+                box.innerHTML = `👤 ${playerName}`;
+                box.classList.remove("bg-slate-800", "bg-red-600");
+                box.classList.add("bg-emerald-600");
+            } else {
+                box.innerHTML = "❌ Invalid UID / Player Not Found";
+                box.classList.remove("bg-slate-800", "bg-emerald-600");
+                box.classList.add("bg-red-600");
+            }
+        } catch (error) {
+            console.error("UID Check Error:", error);
+            box.innerHTML = "❌ Server Busy / Try Again";
+            box.classList.remove("bg-slate-800", "bg-emerald-600");
+            box.classList.add("bg-red-600");
+        }
     }
 
     // --- OTHER HELPERS ---
