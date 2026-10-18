@@ -2,6 +2,26 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
+    <script>
+        // ⚡ INSTANT THEME COLOR CACHE LOADER
+        (function() {
+            try {
+                var cachedColor = localStorage.getItem('drl_theme_color');
+                if (cachedColor) {
+                    var s = document.createElement('style');
+                    s.id = 'dynamic-app-theme';
+                    s.innerHTML = `
+                        .bg-sky-500, .bg-sky-600 { background-color: ${cachedColor} !important; }
+                        .text-sky-500, .text-sky-600, .active-tab { color: ${cachedColor} !important; }
+                        .border-sky-500, .border-sky-600, .focus\\:border-sky-500:focus { border-color: ${cachedColor} !important; }
+                        .product-card.selected { border-color: ${cachedColor} !important; background-color: ${cachedColor}15 !important; }
+                        .product-card.selected .product-bullet { background-color: ${cachedColor} !important; }
+                    `;
+                    document.head.appendChild(s);
+                }
+            } catch(e) {}
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <!-- OneSignal Web Push SDK v16 (APK & WebView 100% Supported) -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer crossorigin="anonymous"></script>
@@ -161,6 +181,46 @@
         .text-theme-bkash { color: #e2136e !important; }
         .text-theme-nagad { color: #f7941d !important; }
         .text-theme-rocket { color: #8c3494 !important; }
+
+        /* 🌟 TOURNAMENT STYLE GUILD GLORY BOT CARDS */
+        .glory-card-item {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .glory-card-item:active { transform: scale(0.97); }
+        .glory-card-item.selected {
+            border-color: #ea580c !important;
+            background: #fff7ed !important;
+            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.15);
+        }
+        .glory-radio-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .glory-card-item.selected .glory-radio-dot {
+            border-color: #ea580c;
+            background: #ea580c;
+        }
+        .glory-card-item.selected .glory-radio-dot::after {
+            content: '✓';
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: 900;
+        }
 
         /* PAYMENT OPTION CARD STYLES */
         .pay-option-card {
@@ -1220,12 +1280,65 @@
     let pendingDirectOrder = null;
 
 
+    function applyDynamicThemeColor(hex) {
+        if (!hex || !hex.startsWith('#')) return;
+        localStorage.setItem('drl_theme_color', hex);
+        let styleEl = document.getElementById('dynamic-app-theme');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'dynamic-app-theme';
+            document.head.appendChild(styleEl);
+        }
+        styleEl.innerHTML = `
+            :root {
+                --theme-color: ${hex};
+            }
+            .bg-sky-500, .bg-sky-600 {
+                background-color: ${hex} !important;
+            }
+            .hover\\:bg-sky-700:hover {
+                filter: brightness(0.9);
+            }
+            .text-sky-600, .text-sky-500, .active-tab {
+                color: ${hex} !important;
+            }
+            .border-sky-500, .border-sky-600, .focus\\:border-sky-500:focus {
+                border-color: ${hex} !important;
+            }
+            .product-card.selected {
+                border-color: ${hex} !important;
+                background-color: ${hex}15 !important;
+            }
+            .product-card.selected .product-bullet {
+                background-color: ${hex} !important;
+            }
+            .nav-item.active-tab {
+                color: ${hex} !important;
+            }
+            #header-balance-container {
+                background-color: ${hex} !important;
+                border-color: ${hex} !important;
+            }
+            #notice-section .bg-sky-500 {
+                background-color: ${hex} !important;
+            }
+            .shadow-\\[0_2px_0px_0px_rgba\\(3\\,169\\,244\\,0\\.5\\)\\] {
+                box-shadow: 0 2px 0px 0px ${hex}80 !important;
+            }
+        `;
+    }
+
     function loadGlobalSettings() {
         db.collection("settings").doc("general").onSnapshot((doc) => {
             if (doc.exists) {
                 const data = doc.data();
                 const logoUrl = data.logoUrl || "https://placehold.co/150x50?text=No+Logo";
                 const siteName = data.siteName || "DRL TOPUP";
+
+                // 🎨 অ্যাডমিন থেকে আসা কালার লাইভ সেট করা
+                if (data.themeColor) {
+                    applyDynamicThemeColor(data.themeColor.trim());
+                }
                 
                 isAutoPayEnabled = data.autoPayEnabled === true;
                 otpScriptUrl = data.otpScriptUrl || "";
@@ -2038,8 +2151,24 @@
             document.getElementById('topup-sub-title').innerText += "(Instant Voucher)";
         } else if (selectedGameType === 'auto-topup') {
             document.getElementById('topup-sub-title').innerText += "(Auto Delivery)";
+        } else if (selectedGameType === 'guild-glory') {
+            document.getElementById('topup-sub-title').innerText = "গেম / বট সেল (Guild Glory)";
         } else {
             document.getElementById('topup-sub-title').innerText += "(Player ID)";
+        }
+
+        // গিল্ড গ্লরি বটের জন্য ইনপুট লেবেল ও UID চেকার পরিবর্তন
+        const idLabel = document.querySelector('#player-id-section label');
+        const idInput = document.getElementById('game-player-id');
+        const uidCheckBtn = document.getElementById('uidCheckBtn');
+        if (selectedGameType === 'guild-glory') {
+            if(idLabel) idLabel.innerText = "Player তথ্য / WhatsApp নম্বর";
+            if(idInput) idInput.placeholder = "আপনার WhatsApp নম্বর বা গিল্ড তথ্য লিখুন...";
+            if(uidCheckBtn) uidCheckBtn.style.display = 'none';
+        } else {
+            if(idLabel) idLabel.innerText = "Player Id";
+            if(idInput) idInput.placeholder = "Player Id";
+            if(uidCheckBtn) uidCheckBtn.style.display = 'block';
         }
 
         const rulesBox = document.getElementById('game-rules-box');
@@ -2076,26 +2205,44 @@
                     grid.innerHTML = `<div class="col-span-2 text-center text-gray-700 py-4">No packages available</div>`;
                     return;
                 }
-                snapshot.forEach(doc => {
+                snapshot.forEach((doc, index) => {
                     const prod = doc.data();
                     const card = document.createElement('div');
-                    card.className = "product-card";
-                    card.onclick = () => selectProduct(card, prod.name, prod.price, doc.id);
                     
-                    let stockBadge = "";
-                    if(selectedGameType === 'code' || selectedGameType === 'auto-topup') {
-                         const count = prod.stockCount || 0;
-                         stockBadge = (count > 0) ? `` : `<span class="text-[9px] text-red-500 bg-red-100 px-1 rounded ml-1">Stock Out</span>`;
-                    }
-
-                    card.innerHTML = `
-                        <div class="flex items-center">
-                            <div class="product-bullet"></div>
-                            <div>
-                                <span class="text-xs font-bold text-gray-600 block">${prod.name} ${stockBadge}</span>
+                    // 🌟 টুরনামেন্ট অ্যাপের মতো গিল্ড গ্লরি বট কার্ড স্টাইল
+                    if(selectedGameType === 'guild-glory') {
+                        card.className = "glory-card-item";
+                        card.onclick = () => selectProduct(card, prod.name, prod.price, doc.id);
+                        card.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <div class="glory-radio-dot"></div>
+                                <div>
+                                    <span class="text-xs font-bold text-gray-800 block">${prod.name}</span>
+                                    ${prod.note ? `<span class="text-[10px] text-gray-500">(${prod.note})</span>` : ''}
+                                </div>
                             </div>
-                        </div>
-                        <span class="text-sky-600 font-bold text-sm">৳${prod.price}</span>`;
+                            <span class="text-emerald-700 font-extrabold text-xs whitespace-nowrap">${prod.price} TK</span>
+                        `;
+                    } else {
+                        // সাধারণ ডায়মন্ড কার্ড
+                        card.className = "product-card";
+                        card.onclick = () => selectProduct(card, prod.name, prod.price, doc.id);
+                        
+                        let stockBadge = "";
+                        if(selectedGameType === 'code' || selectedGameType === 'auto-topup') {
+                             const count = prod.stockCount || 0;
+                             stockBadge = (count > 0) ? `` : `<span class="text-[9px] text-red-500 bg-red-100 px-1 rounded ml-1">Stock Out</span>`;
+                        }
+
+                        card.innerHTML = `
+                            <div class="flex items-center">
+                                <div class="product-bullet"></div>
+                                <div>
+                                    <span class="text-xs font-bold text-gray-600 block">${prod.name} ${stockBadge}</span>
+                                </div>
+                            </div>
+                            <span class="text-sky-600 font-bold text-sm">৳${prod.price}</span>`;
+                    }
                     grid.appendChild(card);
                 });
             });
@@ -2190,6 +2337,8 @@
                 processVoucherOrder(playerId);
             } else if (selectedGameType === 'auto-topup') {
                 processAutoTopUpOrder(playerId);
+            } else if (selectedGameType === 'guild-glory') {
+                processGloryOrder(playerId);
             } else {
                 processUidOrder(playerId);
             }
@@ -2253,6 +2402,73 @@
             showSec('home');
         })
         .catch(err => Swal.fire('Error', err.message, 'error'));
+    }
+
+    // 🌟 টুরনামেন্ট অ্যাপের মতো গিল্ড গ্লরি বট অর্ডার এক্সিকিউশন ও WhatsApp ইন্টিগ্রেশন
+    async function processGloryOrder(playerInfo) {
+        const newBalance = userBalance - selectedProduct.price;
+        const now = new Date();
+
+        try {
+            await db.collection('users').doc(currentUser.uid).update({ balance: newBalance });
+
+            const orderRef = await db.collection('orders').add({
+                userId: currentUser.uid,
+                userName: currentUser.email,
+                gameName: selectedGameName,
+                gameId: selectedGameId,
+                playerId: playerInfo,
+                productName: selectedProduct.name,
+                price: selectedProduct.price,
+                type: 'guild-glory',
+                status: 'pending',
+                date: now
+            });
+
+            // অ্যাডমিনের WhatsApp নম্বর পাওয়া
+            const genDoc = await db.collection('settings').doc('general').get();
+            const waNumRaw = genDoc.exists ? (genDoc.data().whatsapp || '8801409084819') : '8801409084819';
+            let targetWa = String(waNumRaw).replace(/[^0-9]/g, '');
+            if(targetWa.startsWith('0')) targetWa = '88' + targetWa;
+            else if(!targetWa.startsWith('880') && targetWa.length === 10) targetWa = '880' + targetWa;
+
+            // টুরনামেন্ট অ্যাপের মতো হুবহু ইনভয়েস মেসেজ
+            const waText = `🎮 *নতুন স্পেশাল অর্ডার - ${selectedGameName}* 🎮\n` +
+                `━━━━━━━━━━━━━━━━━━━━\n` +
+                `📦 *প্যাকেজ:* ${selectedProduct.name}\n` +
+                `💰 *মূল্য:* ৳${selectedProduct.price} TK\n` +
+                `🆔 *প্লেয়ার / WhatsApp তথ্য:* ${playerInfo}\n` +
+                `👤 *ইউজার:* ${currentUser.email}\n` +
+                `📋 *অর্ডার আইডি:* #${orderRef.id.slice(-6).toUpperCase()}\n` +
+                `⏰ *সময়:* ${now.toLocaleString()}\n` +
+                `━━━━━━━━━━━━━━━━━━━━\n` +
+                `দয়া করে আমার অর্ডারটি কনফার্ম করুন!`;
+
+            const encodedUrl = `https://wa.me/${targetWa}?text=${encodeURIComponent(waText)}`;
+
+            notifyAdminNewOrder("👑 নতুন গিল্ড গ্লরি বট অর্ডার!", `${currentUser.email} একটি ৳${selectedProduct.price} টাকার বট অর্ডার করেছে (${selectedProduct.name})।`);
+
+            Swal.fire({
+                icon: 'success',
+                title: 'অর্ডার সফলভাবে জমা হয়েছে! 🎉',
+                html: `
+                    <div style="font-size:13px; color:#475569; margin-bottom:14px;">
+                        আপনার ব্যালেন্স থেকে <b>৳${selectedProduct.price}</b> কাটা হয়েছে।<br>
+                        অর্ডারটি দ্রুত সম্পন্ন করতে নিচের বাটনে ক্লিক করে WhatsApp এ মেসেজ দিন।
+                    </div>
+                    <a href="${encodedUrl}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; background:#25D366; color:white; padding:12px 20px; border-radius:12px; font-weight:800; font-size:14px; text-decoration:none; box-shadow:0 4px 15px rgba(37,211,102,0.35);">
+                        <i class="fab fa-whatsapp" style="font-size:18px;"></i> WhatsApp এ মেসেজ দিন ➔
+                    </a>
+                `,
+                showConfirmButton: false,
+                showCloseButton: true
+            }).then(() => {
+                showSec('home');
+            });
+
+        } catch (err) {
+            Swal.fire('Error', err.message, 'error');
+        }
     }
 
     async function processAutoTopUpOrder(playerId) {
