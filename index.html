@@ -1140,7 +1140,9 @@
                                 allowLocalhostAsSecureOrigin: true,
                                 notifyButton: { enable: false }
                             });
-                            OneSignal.User.addTag("user_role", "customer");
+                            // নিশ্চিত করা যে সাধারণ ইউজার কখনই অ্যাডমিন হিসেবে গণ্য হবে না
+                            await OneSignal.User.removeTag("role");
+                            await OneSignal.User.addTag("user_role", "customer");
                         } catch(e) {
                             console.warn("User OneSignal Init:", e);
                         }
@@ -1210,53 +1212,67 @@
         }
     }
 
-    // 👑 শুধুমাত্র অ্যাডমিনের নিজস্ব ডিভাইসে পুশ নোটিফিকেশন পাঠানোর ফাংশন
+    // 👑 নির্ভরযোগ্য মাল্টি-গেটওয়ে দিয়ে OneSignal রিকোয়েস্ট পাঠানো
+    async function executeOneSignalPost(payload, apiKey) {
+        const endpoints = [
+            "https://api.onesignal.com/notifications",
+            "https://corsproxy.io/?" + encodeURIComponent("https://api.onesignal.com/notifications"),
+            "https://proxy.corsfix.com/?https://api.onesignal.com/notifications"
+        ];
+
+        let lastErr = null;
+        for (const url of endpoints) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Basic ' + apiKey
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data && (data.id || data.recipients !== undefined)) {
+                    return data;
+                }
+            } catch(e) {
+                lastErr = e;
+            }
+        }
+        throw lastErr || new Error("Push sending failed");
+    }
+
+    // 👑 শুধুমাত্র অ্যাডমিনের ফোনে অর্ডার নোটিফিকেশন পাঠানোর ফাংশন
     async function notifyAdminNewOrder(title, message, type = 'order') {
         if (type === 'order' && autoPushSettings.order_push === false) return;
         if (type === 'deposit' && autoPushSettings.deposit_push === false) return;
 
-        // অ্যাডমিনের App ID না থাকলে ডিফল্টটি নেওয়া হবে
-        const targetAppId = adminOneSignalAppId || userOneSignalAppId;
         const targetApiKey = adminOneSignalApiKey;
+        if (!targetApiKey) return;
 
-        if (!targetAppId || !targetApiKey) {
-            console.log("Admin OneSignal App ID or API Key is not set in Admin Panel!");
-            return;
-        }
-
-        // 🔥 শুধুমাত্র অ্যাডমিন ডিভাইস টার্গেট করা (সাধারণ কোনো ইউজার পাবে না)
-        const payload = {
-            app_id: targetAppId,
-            include_aliases: { external_id: ["admin_device"] },
-            target_channel: "push",
+        let payload = {
             headings: { en: title },
             contents: { en: message }
         };
 
-        // যদি আলাদা অ্যাডমিন অ্যাপ আইডি কনফিগার করা থাকে, তবে তার Total Subscriptions এ যাবে
+        // যদি আলাদা অ্যাডমিন OneSignal App ID থাকে, তবে সেটাতে যাবে
         if (adminOneSignalAppId && adminOneSignalAppId !== userOneSignalAppId) {
-            delete payload.include_aliases;
+            payload.app_id = adminOneSignalAppId;
             payload.included_segments = ["Total Subscriptions"];
+        } else if (userOneSignalAppId) {
+            // আর একই অ্যাপ আইডি হলে শুধুমাত্র "role: admin" ট্যাগে যাবে (সাধারণ কোনো ইউজার পাবে না!)
+            payload.app_id = userOneSignalAppId;
+            payload.filters = [
+                { field: "tag", key: "role", relation: "=", value: "admin" }
+            ];
+        } else {
+            return;
         }
 
-        const sendReq = (url) => fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Key ${targetApiKey}`
-            },
-            body: JSON.stringify(payload)
-        });
-
         try {
-            await sendReq('https://api.onesignal.com/notifications');
-        } catch(directErr) {
-            try {
-                const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent('https://api.onesignal.com/notifications');
-                await sendReq(proxyUrl);
-            } catch(err) {
-                console.warn("Admin Push delivery failed:", err);
-            }
+            await executeOneSignalPost(payload, targetApiKey);
+        } catch(err) {
+            console.warn("Admin Push delivery failed:", err);
         }
     }
     let selectedGameType = 'uid';
