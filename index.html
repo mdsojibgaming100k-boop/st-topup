@@ -1864,44 +1864,6 @@
         }
     });
     
-    // =========================================================================
-    // 🔋 24/7 BACKGROUND KEEP-ALIVE & PERSISTENT WAKE ENGINE
-    // =========================================================================
-    (function init24HoursKeepAliveEngine() {
-        let isEngineRunning = false;
-        
-        // ১. নিঃশব্দ মিডিয়া ইঞ্জিন (অ্যান্ড্রয়েড ওএস যাতে অ্যাপ ব্যাকগ্রাউন্ডে কখনোই বন্ধ না করে)
-        const silentMedia = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
-        silentMedia.loop = true;
-        silentMedia.volume = 0.001; // সম্পূর্ণ নিঃশব্দ (কোনো শব্দ হবে না)
-
-        function activateBackgroundService() {
-            if (isEngineRunning) return;
-            silentMedia.play().then(() => {
-                isEngineRunning = true;
-                console.log("24/7 Background Keep-Alive Active 🟢");
-            }).catch(() => {});
-        }
-
-        // ইউজার অ্যাপে ঢোকার পর যেকোনো জায়গায় একবার টাচ করলেই ব্যাকগ্রাউন্ড সার্ভিস লক হয়ে যাবে
-        window.addEventListener('click', activateBackgroundService, { once: true });
-        window.addEventListener('touchstart', activateBackgroundService, { once: true });
-
-        // ২. ফায়ারবেস হার্টবিট পিং (প্রতি ৪৫ সেকেন্ড পর পর কানেকশন ফ্রেশ রাখা)
-        setInterval(() => {
-            if (typeof db !== 'undefined' && db) {
-                db.collection('settings').doc('general').get({ source: 'server' }).catch(() => {});
-            }
-        }, 45000);
-
-        // ৩. স্ক্রিন লক/মিনিমাইজ হলেও ফায়ারবেস রিয়েলটাইম লিসেনার সজাগ রাখা
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && isEngineRunning) {
-                silentMedia.play().catch(() => {});
-            }
-        });
-    })();
-
     // Always load content
     loadAppContent();
 
