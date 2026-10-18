@@ -1039,7 +1039,8 @@
     // =========================================================================
     // 🔔 TOUR FF EXACT LIVE PUSH NOTIFICATION ENGINE (PURE PUSH - NO VOICE)
     // =========================================================================
-    let userOneSignalAppId = "7398e8c1-9373-4680-bc63-27c413779609";
+    let userOneSignalAppId = "f02ea885-f5f3-4c5e-9baa-d91066b14653";
+let userOneSignalSafariWebId = "web.onesignal.auto.41aef4b6-51a4-4778-92bc-f3aa3e26acde";
     let isOneSignalInitialized = false;
 
     // ১. সাউন্ড সিন্থেসাইজার (মিষ্টি নোটিফিকেশন চিম সাউন্ড)
@@ -1162,11 +1163,14 @@
                     window.OneSignalDeferred = window.OneSignalDeferred || [];
                     window.OneSignalDeferred.push(async function(OneSignal) {
                         try {
-                            // সার্ভিস ওয়ার্কার পাথ ছাড়াই ইনিট যাতে APK-র ভেতর ক্র্যাশ না করে
+                            // OneSignal Web SDK v16 Initialization
                             await OneSignal.init({
-                                appId: userOneSignalAppId,
+                                appId: "f02ea885-f5f3-4c5e-9baa-d91066b14653",
+                                safari_web_id: "web.onesignal.auto.41aef4b6-51a4-4778-92bc-f3aa3e26acde",
                                 allowLocalhostAsSecureOrigin: true,
-                                notifyButton: { enable: false }
+                                notifyButton: {
+                                    enable: true,
+                                }
                             });
 
                             // গ্রাহক ট্যাগ সেট
