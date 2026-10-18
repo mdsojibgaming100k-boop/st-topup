@@ -1044,7 +1044,7 @@
     let adminOneSignalApiKey = "";
     let autoPushSettings = { order_push: true, deposit_push: true };
 
-    // ১. ডিভাইসে সরাসরি নোটিফিকেশন ট্রিগার ব্রিজ (APK-এর ভেতর ১০০% কাজ করবে)
+    // ১. ডিভাইসে সরাসরি নোটিফিকেশন ট্রিগার ব্রিজ (APK ও Web-এ ডেডলক মুক্ত ও সক্রিয়)
     function fireDevicePushNotification(title, message, notifId, bannerImg = '') {
         if (!("Notification" in window) || Notification.permission !== "granted") return;
 
@@ -1062,14 +1062,32 @@
             notifOptions.image = bannerImg.trim();
         }
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(reg => {
-                reg.showNotification(title, notifOptions);
-            }).catch(() => {
-                try { new Notification(title, notifOptions); } catch(e) {}
-            });
-        } else {
-            try { new Notification(title, notifOptions); } catch(e) {}
+        let notificationFired = false;
+
+        // Service Worker সক্রিয় থাকলে তার মাধ্যমে ব্যাকগ্রাউন্ডে প্রদর্শন
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            try {
+                navigator.serviceWorker.getRegistration().then(reg => {
+                    if (reg && reg.showNotification) {
+                        reg.showNotification(title, notifOptions);
+                        notificationFired = true;
+                    } else if (!notificationFired) {
+                        new Notification(title, notifOptions);
+                    }
+                }).catch(() => {
+                    if (!notificationFired) {
+                        try { new Notification(title, notifOptions); } catch(e) {}
+                    }
+                });
+                return;
+            } catch(e) {}
+        }
+
+        // ইনস্ট্যান্ট ডিরেক্ট ফলব্যাক (মোবাইল ব্রাউজার / WebView / APK তে সাথে সাথে ব্যানার শো করবে)
+        try {
+            new Notification(title, notifOptions);
+        } catch(e) {
+            console.warn("Direct notification fallback:", e);
         }
     }
 
@@ -1093,7 +1111,7 @@
         } catch(e) {}
     }
 
-    // ৩. লাইভ ফায়ারস্টোর লিসেনার (টুরনামেন্ট অ্যাপের মতো ব্যাকগ্রাউন্ড/ফোনে নোটিফিকেশন পাঠাবে)
+    // ৩. লাইভ ফায়ারস্টোর লিসেনার (অ্যাডমিনের পুশ সাথে সাথে ইউজার ডিভাইসে ডেলিভারি)
     function listenRealtimeNotifications() {
         db.collection('notifications').onSnapshot(snapshot => {
             const pushedKey = currentUser ? `drl_pushed_${currentUser.uid}` : 'drl_pushed_guest';
@@ -1103,10 +1121,30 @@
             snapshot.docChanges().forEach(change => {
                 if (change.type === "added") {
                     const n = { id: change.doc.id, ...change.doc.data() };
-                    // ইউজার চেক (সবাই অথবা নির্দিষ্ট ইউজার)
+                    // ফিল্টার: অ্যাডমিনের অভ্যন্তরীণ অর্ডার অ্যালার্ট যেন ইউজার অ্যাপে না আসে
+                    if (n.targetRole === 'admin' || n.isAdminAlert === true) return;
+
+                    // ইউজার চেক (সকল গ্রাহক অথবা নির্দিষ্ট ইউজার)
                     if (!n.targetUserId || n.targetUserId === 'all' || (currentUser && n.targetUserId === currentUser.uid)) {
                         if (!pushedIds.includes(n.id)) {
-                            fireDevicePushNotification(n.title || 'DRL TOPUP Alert', n.message || n.body || '', n.id, n.image || '');
+                            const nTitle = n.title || 'DRL TOPUP Notice';
+                            const nMsg = n.message || n.body || '';
+                            fireDevicePushNotification(nTitle, nMsg, n.id, n.image || '');
+
+                            // অ্যাপ ওপেন থাকলে স্ক্রিনের উপরে লাইভ টোস্ট পপআপ
+                            if (typeof Swal !== 'undefined' && Swal.isVisible && !Swal.isVisible()) {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'info',
+                                    title: nTitle,
+                                    text: nMsg,
+                                    timer: 6000,
+                                    timerProgressBar: true,
+                                    showConfirmButton: false
+                                });
+                            }
+
                             pushedIds.push(n.id);
                             hasNew = true;
                         }
@@ -1140,8 +1178,9 @@
                                 allowLocalhostAsSecureOrigin: true,
                                 notifyButton: { enable: false }
                             });
-                            // নিশ্চিত করা যে সাধারণ ইউজার কখনই অ্যাডমিন হিসেবে গণ্য হবে না
+                            // নিশ্চিত করা যে এই ডিভাইসে অ্যাডমিনের কোনো ট্যাগ থাকবে না
                             await OneSignal.User.removeTag("role");
+                            await OneSignal.User.removeTag("user_role");
                             await OneSignal.User.addTag("user_role", "customer");
                         } catch(e) {
                             console.warn("User OneSignal Init:", e);
@@ -1242,32 +1281,29 @@
         throw lastErr || new Error("Push sending failed");
     }
 
-    // 👑 শুধুমাত্র অ্যাডমিনের ফোনে অর্ডার নোটিফিকেশন পাঠানোর ফাংশন
+    // 👑 শুধুমাত্র অ্যাডমিনের ফোনে অর্ডার নোটিফিকেশন পাঠানোর ফাংশন (১০০% সুরক্ষিত)
     async function notifyAdminNewOrder(title, message, type = 'order') {
         if (type === 'order' && autoPushSettings.order_push === false) return;
         if (type === 'deposit' && autoPushSettings.deposit_push === false) return;
 
         const targetApiKey = adminOneSignalApiKey;
-        if (!targetApiKey) return;
+        const targetAppId = adminOneSignalAppId || userOneSignalAppId;
+        if (!targetApiKey || !targetAppId) return;
 
         let payload = {
+            app_id: targetAppId,
             headings: { en: title },
-            contents: { en: message }
+            contents: { en: message },
+            data: { type: type, timestamp: Date.now() }
         };
 
-        // যদি আলাদা অ্যাডমিন OneSignal App ID থাকে, তবে সেটাতে যাবে
-        if (adminOneSignalAppId && adminOneSignalAppId !== userOneSignalAppId) {
-            payload.app_id = adminOneSignalAppId;
-            payload.included_segments = ["Total Subscriptions"];
-        } else if (userOneSignalAppId) {
-            // আর একই অ্যাপ আইডি হলে শুধুমাত্র "role: admin" ট্যাগে যাবে (সাধারণ কোনো ইউজার পাবে না!)
-            payload.app_id = userOneSignalAppId;
-            payload.filters = [
-                { field: "tag", key: "role", relation: "=", value: "admin" }
-            ];
-        } else {
-            return;
-        }
+        // গুরুত্বপূর্ণ: সাধারণ গ্রাহকদের কখনোই এই নোটিফিকেশন পাঠানো যাবে না
+        // শুধুমাত্র যে ডিভাইসে 'admin' ট্যাগ বা লগইন রয়েছে কেবল সেই ডিভাইসেই যাবে
+        payload.filters = [
+            { field: "tag", key: "user_role", relation: "=", value: "admin" },
+            { operator: "OR" },
+            { field: "tag", key: "role", relation: "=", value: "admin" }
+        ];
 
         try {
             await executeOneSignalPost(payload, targetApiKey);
