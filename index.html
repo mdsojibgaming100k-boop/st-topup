@@ -23,7 +23,8 @@
         })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
+    <!-- OneSignal Web Push SDK v16 (APK & WebView 100% Supported) -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer crossorigin="anonymous"></script>
     <title>DRL TOPUP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,30 +32,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<!-- OneSignal Official Web Push SDK v16 (Live Notification Active) -->
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer crossorigin="anonymous"></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    try {
-      await OneSignal.init({
-        appId: "f02ea885-f5f3-4c5e-9baa-d91066b14653",
-        allowLocalhostAsSecureOrigin: true,
-        notifyButton: { enable: false }
-      });
-      // ব্রাউজারে অনুমতি থাকলে স্বয়ংক্রিয়ভাবে কাস্টমার হিসেবে সাবস্ক্রাইব রাখা
-      if (Notification.permission === 'granted') {
-        await OneSignal.User.addTag("role", "customer");
-        if (OneSignal.User && OneSignal.User.PushSubscription) {
-          await OneSignal.User.PushSubscription.optIn();
-        }
-      }
-    } catch(err) {
-      console.warn("OneSignal User Init:", err);
-    }
-  });
-</script>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
@@ -266,15 +243,8 @@
         <div class="flex items-center gap-2">
             <img id="header-logo-img" src="https://placehold.co/150x50?text=Logo" class="h-16 object-contain">
         </div>
-        <div class="flex items-center gap-2">
-            <div id="header-balance-container" class="hidden bg-sky-500 px-4 py-2 rounded-full text-sm font-bold text-white border border-sky-600 shadow-md">
-                <i class="fas fa-wallet mr-1"></i> ৳ <span id="header-balance">0</span>
-            </div>
-            <!-- 🔔 TOP HEADER NOTIFICATION BELL BUTTON -->
-            <button type="button" onclick="window.toggleNotificationDrawer()" class="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:text-sky-600 hover:bg-gray-200 transition shadow-sm">
-                <i class="fas fa-bell"></i>
-                <span id="top-header-notif-badge" class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" style="display:none;"></span>
-            </button>
+        <div id="header-balance-container" class="hidden bg-sky-500 px-4 py-2 rounded-full text-sm font-bold text-white border border-sky-600 shadow-md">
+            <i class="fas fa-wallet mr-1"></i> ৳ <span id="header-balance">0</span>
         </div>
         <div id="header-login-container">
             <button onclick="showAuthPage()" class="bg-sky-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md hover:bg-sky-700 transition">
@@ -997,58 +967,6 @@
     </nav>
 </div>
 
-<!-- ================= 🔔 TECHXZONE EXACT USER NOTIFICATION DRAWER ================= -->
-<div id="notifOverlay" onclick="window.toggleNotificationDrawer()" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9000; display:none; backdrop-filter:blur(3px);"></div>
-<aside id="notifDrawer" style="position:fixed; right:0; top:0; height:100%; width:100%; max-width:380px; background:#ffffff; z-index:9100; box-shadow:-5px 0 25px rgba(0,0,0,0.25); display:flex; flex-direction:column; transform:translateX(100%); transition:transform 0.3s cubic-bezier(0.16,1,0.3,1);">
-    <div style="padding:14px 16px; border-bottom:1px solid #ede9fe; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg, #0284c7, #0369a1); color:white;">
-        <h3 style="font-weight:800; font-size:15px; display:flex; align-items:center; gap:8px;">
-            <i class="fas fa-bell" style="color:#ffd700;"></i> আপনার সকল নোটিফিকেশন
-        </h3>
-        <button onclick="window.toggleNotificationDrawer()" style="width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,0.15); color:white; border:none; font-weight:bold; cursor:pointer;">&times;</button>
-    </div>
-
-    <!-- সরাসরি পুশ নোটিফিকেশন অন/স্ট্যাটাস বার -->
-    <div id="drawerPushBanner" style="padding:10px 14px; background:#fffbeb; border-bottom:1px solid #fef3c7; display:flex; align-items:center; justify-content:space-between; font-size:12px;">
-        <div style="display:flex; align-items:center; gap:6px; color:#92400e; font-weight:700;">
-            <i class="fas fa-bell-slash" id="pushStatusIcon"></i>
-            <span id="pushStatusText">নোটিফিকেশন অনুমতি দিন</span>
-        </div>
-        <button id="enablePushBtn" onclick="window.forceRequestNotificationPermission()" style="background:#0284c7; color:white; border:none; font-weight:800; font-size:11px; padding:5px 12px; border-radius:8px; cursor:pointer;">
-            অন করুন
-        </button>
-    </div>
-
-    <div id="userSpecificNotifList" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px;">
-        <p style="text-align:center; color:#94a3b8; padding:30px 0; font-size:13px;">কোনো নোটিফিকেশন নেই।</p>
-    </div>
-</aside>
-
-<!-- ================= 🔔 TECHXZONE EXACT VOICE PERMISSION MODAL ================= -->
-<div id="notifPermissionModal" style="position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:9500; display:none; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(4px);">
-    <div style="background:linear-gradient(to bottom, #ffffff, #fbfbfe); border-radius:24px; padding:24px 20px; max-width:350px; width:100%; border:1px solid rgba(2,132,199,0.25); box-shadow:0 20px 40px rgba(0,0,0,0.2); text-align:center; position:relative;">
-        <button onclick="window.dismissNotifModal()" style="position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:none; color:#64748b; font-weight:bold; cursor:pointer;">&times;</button>
-
-        <div style="width:60px; height:60px; border-radius:20px; background:linear-gradient(135deg, #0284c7, #0369a1); color:#ffd700; margin:0 auto 14px; display:flex; align-items:center; justify-content:center; font-size:26px; box-shadow:0 8px 20px rgba(2,132,199,0.35);">
-            <i class="fas fa-bell"></i>
-        </div>
-
-        <span style="background:#e0f2fe; color:#0369a1; font-size:10px; font-weight:800; padding:3px 10px; border-radius:20px; text-transform:uppercase;">INSTANT PUSH</span>
-        <h3 style="font-size:17px; font-weight:900; color:#1e293b; margin:6px 0 4px;">নোটিফিকেশন চালু করুন!</h3>
-        <p style="font-size:12px; color:#64748b; line-height:1.6; margin-bottom:16px;">
-            টপ-আপ কমপ্লিট, ব্যালেন্স অ্যাড, ডিসকাউন্ট ও স্পেশাল অফার সবার আগে ফোনের পর্দায় পেতে নোটিফিকেশন অন রাখুন।
-        </p>
-
-        <div style="display:flex; flex-direction:column; gap:8px;">
-            <button onclick="window.requestSiteNotificationPermission()" style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); color:white; font-weight:800; padding:12px; border-radius:12px; border:none; font-size:14px; cursor:pointer; box-shadow:0 6px 18px rgba(2,132,199,0.3);">
-                <i class="fas fa-check"></i> অনুমতি দিন (Allow)
-            </button>
-            <button onclick="window.dismissNotifModal()" style="width:100%; background:transparent; color:#64748b; font-weight:700; padding:9px; border-radius:12px; border:none; font-size:12px; cursor:pointer;">
-                পরে করবো (Dismiss)
-            </button>
-        </div>
-    </div>
-</div>
-
 <script>
     // --- 1. MAIN FIREBASE CONFIGURATION (Users, Games, Orders) ---
     const firebaseConfig = {
@@ -1118,7 +1036,223 @@
     let selectedGameId = null;
     let selectedGameName = "";
 
-    
+    // =========================================================================
+    // 🔔 TOUR FF EXACT LIVE PUSH NOTIFICATION ENGINE (PURE PUSH - NO VOICE)
+    // =========================================================================
+    let userOneSignalAppId = "7398e8c1-9373-4680-bc63-27c413779609";
+    let isOneSignalInitialized = false;
+
+    // ১. সাউন্ড সিন্থেসাইজার (মিষ্টি নোটিফিকেশন চিম সাউন্ড)
+    function playNotificationChime() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+            osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.35);
+        } catch(e) {}
+    }
+
+    // ২. ডিভাইসে ছবি ও ব্যানার সহ ১০০% নির্ভরযোগ্য পুশ প্রদর্শন (APK ও Web)
+    function fireDevicePushNotification(title, message, notifId, bannerImg = '') {
+        if (!("Notification" in window)) return;
+        
+        // পারমিশন না থাকলে পারমিশন নিয়ে নেওয়া
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+            return;
+        }
+
+        const notifOptions = {
+            body: message,
+            icon: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
+            badge: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
+            vibrate: [300, 100, 300, 100, 300],
+            tag: 'topup-notif-' + (notifId || Date.now()),
+            renotify: true,
+            data: { url: window.location.href }
+        };
+
+        if (bannerImg && bannerImg.trim() !== '') {
+            notifOptions.image = bannerImg.trim();
+        }
+
+        // সরাসরি সিস্টেম নোটিফিকেশন ট্রিগার (Android APK ও ব্রাউজারে সাথে সাথে নোটিফিকেশন ড্রয়ারে শো করবে)
+        try {
+            new Notification(title, notifOptions);
+        } catch(e) {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration().then(reg => {
+                    if (reg && reg.showNotification) {
+                        reg.showNotification(title, notifOptions);
+                    }
+                }).catch(()=>{});
+            }
+        }
+    }
+
+    // ৩. লাইভ ফায়ারস্টোর লিসেনার (অ্যাডমিন প্যানেল থেকে পাঠানো নোটিফিকেশন সরাসরি ইউজারের ফোনে শো হবে)
+    function listenRealtimeNotifications() {
+        db.collection('notifications').onSnapshot(snapshot => {
+            const pushedKey = currentUser ? `topup_pushed_${currentUser.uid}` : 'topup_pushed_guest';
+            let pushedIds = JSON.parse(localStorage.getItem(pushedKey) || '[]');
+            let hasNew = false;
+
+            snapshot.docChanges().forEach(change => {
+                if (change.type === "added") {
+                    const n = { id: change.doc.id, ...change.doc.data() };
+                    // অ্যাডমিনের অভ্যন্তরীণ অর্ডার অ্যালার্ট যেন সাধারণ ইউজারের ফোনে না যায়
+                    if (n.targetRole === 'admin' || n.isAdminAlert === true) return;
+
+                    // সকল ইউজার অথবা নির্দিষ্ট ইউজার চেক
+                    if (!n.targetUserId || n.targetUserId === 'all' || (currentUser && n.targetUserId === currentUser.uid)) {
+                        if (!pushedIds.includes(n.id)) {
+                            const nTitle = n.title || 'Notification';
+                            const nMsg = n.message || n.body || '';
+                            const nImg = n.image || n.imageUrl || '';
+
+                            fireDevicePushNotification(nTitle, nMsg, n.id, nImg);
+
+                            // স্ক্রিনে অ্যাপ খোলা থাকলে ওপরের ডানপাশে লাইভ টোস্ট পপ-আপ
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'info',
+                                    title: nTitle,
+                                    text: nMsg,
+                                    timer: 6000,
+                                    timerProgressBar: true,
+                                    showConfirmButton: false
+                                });
+                            }
+
+                            pushedIds.push(n.id);
+                            hasNew = true;
+                        }
+                    }
+                }
+            });
+
+            localStorage.setItem(pushedKey, JSON.stringify(pushedIds.slice(-50)));
+            if (hasNew) playNotificationChime();
+        });
+    }
+
+    // =========================================================================
+    // 🔔 APPMINT & HYBRID CRASH-FREE ONESIGNAL REGISTRATION ENGINE
+    // =========================================================================
+    function initOneSignalEngine() {
+        db.collection('settings').doc('onesignal').onSnapshot(doc => {
+            if(doc.exists) {
+                const d = doc.data();
+                if (d.app_id && d.app_id.trim()) userOneSignalAppId = d.app_id.trim();
+
+                if (!isOneSignalInitialized && userOneSignalAppId) {
+                    isOneSignalInitialized = true;
+                    window.OneSignalDeferred = window.OneSignalDeferred || [];
+                    window.OneSignalDeferred.push(async function(OneSignal) {
+                        try {
+                            // সার্ভিস ওয়ার্কার পাথ ছাড়াই ইনিট যাতে APK-র ভেতর ক্র্যাশ না করে
+                            await OneSignal.init({
+                                appId: userOneSignalAppId,
+                                allowLocalhostAsSecureOrigin: true,
+                                notifyButton: { enable: false }
+                            });
+
+                            // গ্রাহক ট্যাগ সেট
+                            await OneSignal.User.removeTag("role");
+                            await OneSignal.User.removeTag("user_role");
+                            await OneSignal.User.addTag("user_role", "customer");
+
+                            // নোটিফিকেশন সাবস্ক্রিপশন জোরপূর্বক সক্রিয় করা
+                            if (OneSignal.Notifications) {
+                                await OneSignal.Notifications.requestPermission();
+                            }
+                        } catch(e) {
+                            console.warn("OneSignal Safe Init:", e);
+                        }
+                    });
+                }
+            }
+        });
+
+        // সরাসরি অ্যান্ড্রয়েড সিস্টেম পারমিশন নিশ্চিতকরণ
+        setTimeout(() => {
+            if ("Notification" in window && Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+        }, 1200);
+
+        listenRealtimeNotifications();
+    }
+    initOneSignalEngine();
+
+    // ⚡ ফাস্ট ও নন-ব্লকিং OneSignal ডিসপ্যাচার (হ্যাং হওয়া প্রতিরোধক)
+    async function executeOneSignalPost(payload, apiKey) {
+        if (!apiKey || !payload.app_id) return;
+        const cleanApiKey = apiKey.replace(/^(Basic|Key)\s+/i, '').trim();
+
+        const endpoints = [
+            "https://corsproxy.io/?" + encodeURIComponent("https://api.onesignal.com/notifications"),
+            "https://api.onesignal.com/notifications"
+        ];
+
+        for (const url of endpoints) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500); // ২.৫ সেকেন্ডের বেশি আটকে থাকবে না
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Basic ' + cleanApiKey
+                    },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (res.ok) return await res.json();
+            } catch(e) {}
+        }
+    }
+
+    // 👑 অ্যাডমিনের ফোনের জন্য High Priority (priority: 10) অর্ডার অ্যালার্ট
+    function notifyAdminNewOrder(title, message, type = 'order') {
+        if (type === 'order' && autoPushSettings.order_push === false) return;
+        if (type === 'deposit' && autoPushSettings.deposit_push === false) return;
+
+        const targetApiKey = adminOneSignalApiKey;
+        const targetAppId = adminOneSignalAppId || userOneSignalAppId;
+        if (!targetApiKey || !targetAppId) return;
+
+        // 🚀 অ্যাডমিনের ফোন ঘুমন্ত/লক থাকলেও সাথে সাথে বাজানোর সেটিংস
+        let payload = {
+            app_id: targetAppId,
+            headings: { en: title },
+            contents: { en: message },
+            priority: 10,  // High Priority: অ্যাডমিনের ফোনে সাথে সাথে বেজে উঠবে
+            ttl: 259200,    // ৩ দিন ব্যাকগ্রাউন্ড কিউ
+            android_visibility: 1,
+            content_available: true,
+            include_aliases: { external_id: ["admin_device"] },
+            target_channel: "push",
+            data: { type: type, timestamp: Date.now() }
+        };
+
+        // ব্যাকগ্রাউন্ডে নন-ব্লকিং এক্সিকিউশন (ইউজারের অর্ডার লোডিং আটকে থাকবে না)
+        executeOneSignalPost(payload, targetApiKey).catch(() => {});
+    }
     let selectedGameType = 'uid';
     let gamesData = {};
     // ✅ Auto Payment Flag
@@ -1190,32 +1324,6 @@
                 color: ${hex} !important;
             }
         `;
-    }
-
-    // 🚀 নতুন অর্ডার বা ডিপোজিট হলে নিরাপদে এডমিনের ফোনে এলার্ট পাঠানোর ফাংশন
-    async function triggerAdminPushAlert(type, payloadData) {
-        try {
-            const cfgSnap = await db.collection('settings').doc('onesignal_config').get();
-            if (cfgSnap.exists) {
-                const cfg = cfgSnap.data();
-                if (type === 'new_order' && cfg.orderAlert === false) return;
-                if (type === 'new_deposit' && cfg.depositAlert === false) return;
-                if (!cfg.rest_api_key) return;
-
-                fetch('/api/notify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: type,
-                        apiKey: cfg.rest_api_key,
-                        appId: cfg.app_id || "f02ea885-f5f3-4c5e-9baa-d91066b14653",
-                        data: payloadData
-                    })
-                }).catch(e => console.warn("Admin Push Error:", e));
-            }
-        } catch(e) {
-            console.warn("Push trigger skipped:", e);
-        }
     }
 
     function loadGlobalSettings() {
@@ -1297,293 +1405,6 @@
     }
     loadGlobalSettings();
     loadHowToVideo();
-
-    // ============================================================
-    // 🔔 ONESIGNAL USER NOTIFICATION ENGINE (A TO Z INTEGRATION)
-    // ============================================================
-    let notifVoiceAudio = null;
-
-    function playNotifPromptAudio() {
-        try {
-            if (!notifVoiceAudio) {
-                notifVoiceAudio = new Audio("https://www.image2url.com/r2/default/audio/1790964090310-78086705-1732-4b3e-87a1-5127850d6758.mp3");
-                notifVoiceAudio.preload = "auto";
-            }
-            const p = notifVoiceAudio.play();
-            if (p !== undefined) {
-                p.catch(() => {
-                    const unlock = () => {
-                        const m = document.getElementById('notifPermissionModal');
-                        if (m && m.style.display !== 'none' && notifVoiceAudio) {
-                            notifVoiceAudio.play().catch(()=>{});
-                        }
-                        document.removeEventListener('click', unlock);
-                        document.removeEventListener('touchstart', unlock);
-                    };
-                    document.addEventListener('click', unlock, { once: true });
-                    document.addEventListener('touchstart', unlock, { once: true });
-                });
-            }
-        } catch(e) {}
-    }
-
-    function playNotificationChime() {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-            osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.2, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.35);
-        } catch(e) {}
-    }
-
-    function fireDevicePushNotification(title, message, notifId, bannerImg = '') {
-        if (!("Notification" in window) || Notification.permission !== "granted") return;
-
-        const notifOptions = {
-            body: message,
-            icon: localStorage.getItem('app_site_logo') || "https://placehold.co/150x150",
-            badge: localStorage.getItem('app_site_logo') || "https://placehold.co/150x150",
-            vibrate: [250, 100, 250, 100, 250],
-            tag: 'drl-notif-' + (notifId || Date.now()),
-            renotify: true,
-            data: { url: window.location.origin }
-        };
-
-        if (bannerImg && bannerImg.trim() !== '') {
-            notifOptions.image = bannerImg.trim();
-        }
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(reg => {
-                reg.showNotification(title, notifOptions);
-            }).catch(() => {
-                try { new Notification(title, notifOptions); } catch(e) {}
-            });
-        } else {
-            try { new Notification(title, notifOptions); } catch(e) {}
-        }
-    }
-
-    window.toggleNotificationDrawer = function() {
-        const drawer = document.getElementById('notifDrawer');
-        const overlay = document.getElementById('notifOverlay');
-        if (!drawer || !overlay) return;
-
-        const isClosed = drawer.style.transform === 'translateX(100%)' || drawer.style.transform === '';
-        if (isClosed) {
-            drawer.style.transform = 'translateX(0%)';
-            overlay.style.display = 'block';
-            loadUserLiveNotifications();
-        } else {
-            drawer.style.transform = 'translateX(100%)';
-            overlay.style.display = 'none';
-        }
-    };
-
-    function showNotificationPrompt() {
-        if (!("Notification" in window)) return;
-        if (sessionStorage.getItem("drl_notif_dismissed") === "true") return;
-
-        if (Notification.permission === "default") {
-            setTimeout(() => {
-                const modal = document.getElementById('notifPermissionModal');
-                if (modal) {
-                    modal.style.display = 'flex';
-                    playNotifPromptAudio();
-                }
-            }, 1800);
-        }
-    }
-
-    window.dismissNotifModal = function() {
-        if (notifVoiceAudio) {
-            try { notifVoiceAudio.pause(); notifVoiceAudio.currentTime = 0; } catch(e) {}
-        }
-        const modal = document.getElementById('notifPermissionModal');
-        if (modal) modal.style.display = 'none';
-        sessionStorage.setItem("drl_notif_dismissed", "true");
-    };
-
-    window.requestSiteNotificationPermission = async function() {
-        if (notifVoiceAudio) {
-            try { notifVoiceAudio.pause(); notifVoiceAudio.currentTime = 0; } catch(e) {}
-        }
-        const modal = document.getElementById('notifPermissionModal');
-        if (modal) modal.style.display = 'none';
-
-        if (!("Notification" in window)) {
-            return Swal.fire({
-                icon: 'info',
-                title: 'Google Chrome-এ খুলুন',
-                text: 'পুশ নোটিফিকেশন চালু করতে সাইটটি ফোনের আসল Google Chrome ব্রাউজারে খুলুন।'
-            });
-        }
-
-        if (Notification.permission === "denied") {
-            return Swal.fire({
-                icon: 'warning',
-                title: 'নোটিফিকেশন ব্লক করা আছে!',
-                html: `Chrome ব্রাউজারে সাইটের নোটিফিকেশন Blocked আছে。<br><br>
-                <b>চালু করার নিয়ম:</b><br>
-                ব্রাউজারের উপরে সাইট লিঙ্কের বামে থাকা <b>লক (Lock)</b> আইকনে চাপুন &gt; <b>Permissions &gt; Notifications &gt; Allow</b> করে পেজ রিলোড দিন।`
-            });
-        }
-
-        try {
-            // ⚡ সরাসরি গুগল ক্রোমের অফিশিয়াল Allow/Block পপ-আপ ওপেন হবে
-            const permission = await Notification.requestPermission();
-
-            if (permission === "granted") {
-                window.OneSignalDeferred = window.OneSignalDeferred || [];
-                OneSignalDeferred.push(async function(OneSignal) {
-                    try {
-                        await OneSignal.Notifications.requestPermission();
-                        // আপনার api/notify এর broadcast_customer ফিল্টারের সাথে মিল রেখে ট্যাগ
-                        await OneSignal.User.addTag("role", "customer");
-                        
-                        // যদি ইউজার লগইন থাকে, external_id সেট হবে (single_user টার্গেটের জন্য)
-                        if (currentUser && currentUser.uid) {
-                            await OneSignal.login(currentUser.uid);
-                            await OneSignal.User.addTag("userId", currentUser.uid);
-                        }
-
-                        if (OneSignal.User && OneSignal.User.PushSubscription) {
-                            await OneSignal.User.PushSubscription.optIn();
-                        }
-                    } catch(err) {
-                        console.warn("OneSignal Sub Error:", err);
-                    }
-                });
-
-                playNotificationChime();
-                updatePushBannerStatus();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'নোটিফিকেশন সক্রিয় হয়েছে! 🔔',
-                    text: 'সকল টপ-আপ আপডেট ও অফার এখন সরাসরি ফোনের স্ক্রিনে পাবেন।',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            } else {
-                updatePushBannerStatus();
-            }
-        } catch(e) {
-            console.error("Notification Request Error:", e);
-            updatePushBannerStatus();
-        }
-    };
-    window.forceRequestNotificationPermission = function() {
-        window.requestSiteNotificationPermission();
-    };
-
-    function updatePushBannerStatus() {
-        const text = document.getElementById('pushStatusText');
-        const icon = document.getElementById('pushStatusIcon');
-        const btn = document.getElementById('enablePushBtn');
-        if (!text || !btn) return;
-
-        if (Notification.permission === "granted") {
-            text.innerText = "নোটিফিকেশন সক্রিয় আছে";
-            text.style.color = "#15803d";
-            if (icon) icon.className = "fas fa-check-circle";
-            btn.style.display = "none";
-        } else {
-            text.innerText = "নোটিফিকেশন চালু রাখুন";
-            text.style.color = "#92400e";
-            if (icon) icon.className = "fas fa-bell-slash";
-            btn.style.display = "block";
-        }
-    }
-
-    function isNotifForMe(n) {
-        if(!n.targetUserId || n.targetUserId === 'all') return true;
-        if(currentUser && n.targetUserId === currentUser.uid) return true;
-        return false;
-    }
-
-    function loadUserLiveNotifications() {
-        updatePushBannerStatus();
-        const container = document.getElementById('userSpecificNotifList');
-        const topBadge = document.getElementById('top-header-notif-badge');
-        if (!container) return;
-
-        db.collection('notifications').onSnapshot(snapshot => {
-            const items = [];
-            snapshot.forEach(docSnap => {
-                const n = { id: docSnap.id, ...docSnap.data() };
-                if (isNotifForMe(n)) items.push(n);
-            });
-
-            if (items.length === 0) {
-                container.innerHTML = `<p style="text-align:center; color:#94a3b8; padding:30px 0; font-size:13px;">কোনো নোটিফিকেশন নেই।</p>`;
-                if (topBadge) topBadge.style.display = 'none';
-                return;
-            }
-
-            items.sort((a,b) => (b.timestampMs || 0) - (a.timestampMs || 0));
-
-            const pushedKey = currentUser ? `drl_pushed_${currentUser.uid}` : 'drl_pushed_guest';
-            let pushedIds = JSON.parse(localStorage.getItem(pushedKey) || '[]');
-            let hasNew = false;
-
-            items.forEach(n => {
-                if (!pushedIds.includes(n.id)) {
-                    fireDevicePushNotification(n.title || 'DRL TOPUP Alert', n.message || n.body || '', n.id, n.image || n.imageUrl || '');
-                    pushedIds.push(n.id);
-                    hasNew = true;
-                }
-            });
-            localStorage.setItem(pushedKey, JSON.stringify(pushedIds.slice(-50)));
-
-            if (hasNew) playNotificationChime();
-
-            if (topBadge) {
-                topBadge.style.display = items.length > 0 ? 'block' : 'none';
-            }
-
-            container.innerHTML = items.map(n => {
-                const banner = n.image || n.imageUrl || '';
-                const clickAction = n.link ? `onclick="window.open('${n.link}', '_blank')"` : '';
-                const cursorStyle = n.link ? 'cursor:pointer;' : '';
-                return `
-                <div ${clickAction} style="background:#ffffff; border:1px solid #e0f2fe; border-radius:14px; padding:12px; box-shadow:0 2px 8px rgba(0,0,0,0.04); display:flex; flex-direction:column; gap:8px; ${cursorStyle} transition:transform 0.2s;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:800; font-size:13px; color:#0369a1; display:flex; align-items:center; gap:6px;">
-                            <i class="fas fa-bell" style="color:#0284c7; font-size:11px;"></i> ${n.title || 'নোটিফিকেশন'}
-                        </span>
-                        <span style="font-size:10px; color:#94a3b8;"><i class="far fa-clock"></i> ${n.time || ''}</span>
-                    </div>
-
-                    ${banner ? `
-                    <div style="width:100%; max-height:160px; border-radius:10px; overflow:hidden; border:1px solid #f1f5f9; background:#f8fafc;">
-                        <img src="${banner}" style="width:100%; height:100%; max-height:160px; object-fit:cover; display:block;" onerror="this.parentElement.style.display='none'">
-                    </div>` : ''}
-
-                    <p style="font-size:12px; color:#475569; line-height:1.5; margin:0; word-break:break-word;">${n.message || n.body || ''}</p>
-                    
-                    ${n.link ? `
-                    <div style="text-align:right;">
-                        <span style="font-size:11px; color:#0284c7; font-weight:800;">লিংক দেখুন &rarr;</span>
-                    </div>` : ''}
-                </div>`;
-            }).join('');
-        });
-    }
-
-    setTimeout(() => {
-        showNotificationPrompt();
-        loadUserLiveNotifications();
-    }, 1800);
 
     // --- 2. AUTH LOGIC ---
     function toggleAuth(view) {
@@ -2002,13 +1823,6 @@
     }
 
     function handleLogout() { 
-        if (window.OneSignalDeferred) {
-            window.OneSignalDeferred.push(async function(OneSignal) {
-                try {
-                    await OneSignal.logout();
-                } catch(e){}
-            });
-        }
         auth.signOut().then(() => {
              showSec('home');
         }); 
@@ -2018,16 +1832,15 @@
         if (user) {
             currentUser = user;
 
-            // OneSignal এ ইউজার লগইন সিঙ্ক
-            if (window.OneSignalDeferred) {
-                window.OneSignalDeferred.push(async function(OneSignal) {
-                    try {
-                        await OneSignal.login(user.uid);
-                    } catch(e){}
-                });
-            }
-
-            
+            // OneSignal এ ইউজার UID সিঙ্ক (APK তে পারফেক্ট নোটিফিকেশন আসার জন্য)
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push(async function(OneSignal) {
+                try {
+                    await OneSignal.login(user.uid);
+                    OneSignal.User.addTag("user_role", "customer");
+                    OneSignal.User.addTag("user_email", user.email || "");
+                } catch(e) {}
+            });
 
             // Check if currently on auth page, if so go home
             if(!document.getElementById('auth-sec').classList.contains('hidden')){
@@ -2619,6 +2432,7 @@
                 status: 'success', redeemCode: voucherCode, date: new Date()
             });
 
+            notifyAdminNewOrder("🎟️ ভাউচার কোড বিক্রয়!", `${currentUser.email || 'ইউজার'} ${selectedGameName} এর ৳${selectedProduct.price} টাকার ভাউচার কোড ক্রয় করেছে।`);
             Swal.fire('Success', 'Voucher Purchased! Check History for Code.', 'success');
             showSec('home');
 
@@ -2637,16 +2451,8 @@
                 status: 'pending', date: new Date()
             });
         })
-        .then((orderRef) => {
-            // 🔔 অ্যাডমিনের ফোনে নতুন অর্ডারের পুশ পাঠানো
-            triggerAdminPushAlert('new_order', {
-                orderId: orderRef.id,
-                productName: selectedProduct.name,
-                price: selectedProduct.price,
-                gameName: selectedGameName,
-                userEmail: currentUser.email
-            });
-
+        .then(() => {
+            notifyAdminNewOrder("🚨 নতুন UID টপ-আপ অর্ডার!", `${currentUser.email || 'ইউজার'} একটি ৳${selectedProduct.price} টাকার অর্ডার দিয়েছে (${selectedGameName} - ${selectedProduct.name})।`);
             Swal.fire('Success', 'Order Placed Successfully!', 'success');
             showSec('home');
         })
@@ -2694,6 +2500,8 @@
                 `দয়া করে আমার অর্ডারটি কনফার্ম করুন!`;
 
             const encodedUrl = `https://wa.me/${targetWa}?text=${encodeURIComponent(waText)}`;
+
+            notifyAdminNewOrder("👑 নতুন গিল্ড গ্লরি বট অর্ডার!", `${currentUser.email} একটি ৳${selectedProduct.price} টাকার বট অর্ডার করেছে (${selectedProduct.name})।`);
 
             Swal.fire({
                 icon: 'success',
@@ -2787,6 +2595,7 @@
 
             setTimeout(() => {
                 orderRef.update({ status: 'success' }).then(() => {
+                    notifyAdminNewOrder("⚡ অটো টপ-আপ অর্ডার সফল!", `ইউজার: ${currentUser.email} | গেম: ${selectedGameName} (${selectedProduct.name} - ৳${selectedProduct.price})`);
                     Swal.fire('Success!', 'Your Top-Up has been completed successfully.', 'success');
                     showSec('home');
                 });
@@ -3155,14 +2964,7 @@ const num = data[fieldKey] || "Not Available";
             userEmail: currentUser.email,
             method: currentPaymentMethod
         }).then(() => {
-            // 🔔 অ্যাডমিনের ফোনে নতুন ডিপোজিট রিকোয়েস্টের পুশ পাঠানো
-            triggerAdminPushAlert('new_deposit', {
-                amount: amount,
-                trxId: trxId.toUpperCase(),
-                method: currentPaymentMethod,
-                userEmail: currentUser.email
-            });
-
+            notifyAdminNewOrder("💰 নতুন ডিপোজিট রিকোয়েস্ট!", `মেথড: ${currentPaymentMethod} | টাকা: ৳${amount} | TrxID: ${trxId.toUpperCase()} (${currentUser.email})`, 'deposit');
             Swal.fire({
                 title: 'Request Submitted', 
                 text: 'Your deposit request has been sent. Please wait for admin approval.', 
@@ -3428,6 +3230,32 @@ const num = data[fieldKey] || "Not Available";
         </div>
     </div>
 </div>
+<!-- 🔔 SWEET AUDIO & WEB PUSH PERMISSION MODAL -->
+<audio id="pushPermissionVoiceAudio" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+</audio>
 
+<div id="push-permission-popup" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-2xl border border-gray-100 animate-fade-in relative">
+        <div class="w-16 h-16 bg-sky-100 text-sky-600 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-sm animate-bounce">
+            <i class="fas fa-bell"></i>
+        </div>
+        <h3 class="text-lg font-bold text-gray-800">নোটিফিকেশন চালু করুন 🔔</h3>
+        <p class="text-xs text-sky-600 font-bold mt-1">অর্ডার আপডেট ও অফার সবার আগে পেতে</p>
+        
+        <p class="text-xs text-gray-600 leading-relaxed my-4 px-2">
+            আপনার টপ-আপ সফল হওয়া মাত্রই অর্ডার কনফার্মেশন ও স্পেশাল ডিসকাউন্ট অফার সরাসরি স্ক্রিনে পেতে নোটিফিকেশন অন রাখুন।
+        </p>
+
+        <div class="space-y-2">
+            <button type="button" onclick="requestWebPushPermission()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2">
+                <i class="fas fa-check-circle"></i> অনুমতি দিন (Allow)
+            </button>
+            <button type="button" onclick="dismissPushPermissionPopup()" class="w-full py-2.5 text-gray-400 hover:text-gray-600 text-xs font-semibold">
+                পরে করব (Later)
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
