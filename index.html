@@ -977,7 +977,7 @@
     let selectedGameName = "";
 
     // ==========================================
-    // 🔔 ONESIGNAL DYNAMIC ENGINE & ADMIN AUTO-PUSH
+    // 🔔 ONESIGNAL WEB PUSH & PERMISSION ENGINE
     // ==========================================
     let oneSignalAppId = "";
     let oneSignalApiKey = "";
@@ -989,15 +989,17 @@
                 oneSignalAppId = d.app_id || "";
                 oneSignalApiKey = d.rest_api_key || "";
 
-                if(oneSignalAppId && window.OneSignal) {
+                if(oneSignalAppId) {
                     window.OneSignalDeferred = window.OneSignalDeferred || [];
                     window.OneSignalDeferred.push(async function(OneSignal) {
                         try {
                             await OneSignal.init({
                                 appId: oneSignalAppId,
-                                allowLocalhostAsSecureOrigin: true,
-                                notifyButton: { enable: true }
+                                allowLocalhostAsSecureOrigin: true
                             });
+
+                            // পারমিশন স্ট্যাটাস চেক
+                            checkAndShowPushPermissionModal();
                         } catch(e) {
                             console.warn("OneSignal init error:", e);
                         }
@@ -1007,6 +1009,59 @@
         });
     }
     initOneSignalEngine();
+
+    // মিষ্টি অডিও সহ এলাউ করার পপ-আপ প্রদর্শন
+    function checkAndShowPushPermissionModal() {
+        if (!("Notification" in window)) return;
+        if (Notification.permission === "granted" || Notification.permission === "denied") return;
+
+        const hasDismissed = sessionStorage.getItem('drl_push_dismissed');
+        if (hasDismissed) return;
+
+        setTimeout(() => {
+            const modal = document.getElementById('push-permission-popup');
+            if (modal) {
+                modal.classList.remove('hidden');
+                const audio = document.getElementById('pushPermissionVoiceAudio');
+                if (audio) audio.play().catch(() => {});
+            }
+        }, 1800);
+    }
+
+    function dismissPushPermissionPopup() {
+        const modal = document.getElementById('push-permission-popup');
+        if (modal) modal.classList.add('hidden');
+        sessionStorage.setItem('drl_push_dismissed', 'true');
+    }
+
+    // ইউজার বাটনে ক্লিক করলে আসল ক্রোম ব্রাউজার ডায়ালগ ট্রিগার
+    async function requestWebPushPermission() {
+        dismissPushPermissionPopup();
+
+        if (!("Notification" in window)) {
+            return Swal.fire('বিজ্ঞপ্তি', 'আপনার ব্রাউজার পুশ নোটিফিকেশন সাপোর্ট করে না', 'info');
+        }
+
+        try {
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push(async function(OneSignal) {
+                await OneSignal.Notifications.requestPermission();
+            });
+
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'নোটিফিকেশন সক্রিয় হয়েছে! 🔔',
+                    text: 'এখন থেকে সব অর্ডার আপডেট ও অফার আপনার ডিভাইসে সরাসরি পাবেন।',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        } catch(err) {
+            console.warn("Permission request error:", err);
+        }
+    }
 
     // অ্যাডমিনকে সরাসরি ফোনে পুশ নোটিফিকেশন পাঠানোর ফাংশন
     async function notifyAdminNewOrder(title, message) {
@@ -2758,6 +2813,33 @@ const num = data[fieldKey] || "Not Available";
             </button>
             <button type="button" onclick="closeOtpVerificationModal()" class="w-full py-2.5 text-gray-500 hover:text-gray-700 text-xs font-semibold">
                 বাতিল করুন (Cancel)
+            </button>
+        </div>
+    </div>
+</div>
+<!-- 🔔 SOUND & NATIVE PUSH PERMISSION POPUP MODAL -->
+<audio id="pushPermissionVoiceAudio" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+</audio>
+
+<div id="push-permission-popup" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-2xl border border-gray-100 animate-fade-in relative">
+        <div class="w-16 h-16 bg-sky-100 text-sky-600 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-sm animate-bounce">
+            <i class="fas fa-bell"></i>
+        </div>
+        <h3 class="text-lg font-bold text-gray-800">গুরুত্বপূর্ণ নোটিফিকেশন 🔔</h3>
+        <p class="text-xs text-sky-600 font-bold mt-1">অর্ডার আপডেট ও অফার সবার আগে পেতে</p>
+        
+        <p class="text-xs text-gray-600 leading-relaxed my-4 px-2">
+            আপনার টপ-আপ অর্ডার সফল হওয়া মাত্র কনফার্মেশন ও সকল স্পেশাল ডিসকাউন্ট অফার সরাসরি স্ক্রিনে পেতে নোটিফিকেশন চালু রাখুন।
+        </p>
+
+        <div class="space-y-2">
+            <button type="button" onclick="requestWebPushPermission()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2">
+                <i class="fas fa-check-circle"></i> অনুমতি দিন (Allow)
+            </button>
+            <button type="button" onclick="dismissPushPermissionPopup()" class="w-full py-2.5 text-gray-400 hover:text-gray-600 text-xs font-semibold">
+                পরে করব (Later)
             </button>
         </div>
     </div>
