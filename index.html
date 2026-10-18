@@ -23,8 +23,29 @@
         })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- OneSignal Web Push SDK v16 (APK & WebView 100% Supported) -->
+    <!-- OneSignal Official Web Push SDK v16 (Live Notification Active in Background) -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer crossorigin="anonymous"></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          await OneSignal.init({
+            appId: "f02ea885-f5f3-4c5e-9baa-d91066b14653",
+            safari_web_id: "web.onesignal.auto.3cda868c-95ba-4dc0-a9c6-5ad5b099bc53",
+            allowLocalhostAsSecureOrigin: true,
+            notifyButton: {
+              enable: false
+            }
+          });
+          // ব্যাকগ্রাউন্ড ডিভাইসে পারমিশন অটো রিকোয়েস্ট
+          if (OneSignal.Notifications) {
+            await OneSignal.Notifications.requestPermission();
+          }
+        } catch(err) {
+          console.warn("OneSignal Webview Init:", err);
+        }
+      });
+    </script>
     <title>DRL TOPUP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1037,12 +1058,11 @@
     let selectedGameName = "";
 
     // =========================================================================
-    // 🔔 TOUR FF EXACT LIVE PUSH NOTIFICATION ENGINE (PURE PUSH - NO VOICE)
+    // 🔔 TOUR FF EXACT LIVE BACKGROUND PUSH & SUBSCRIBER ENGINE
     // =========================================================================
-    let userOneSignalAppId = "7398e8c1-9373-4680-bc63-27c413779609";
-    let isOneSignalInitialized = false;
+    const TOUR_ONESIGNAL_APP_ID = "7398e8c1-9373-4680-bc63-27c413779609";
 
-    // ১. সাউন্ড সিন্থেসাইজার (মিষ্টি নোটিফিকেশন চিম সাউন্ড)
+    // ১. সাউন্ড সিন্থেসাইজার (মিষ্টি নোটিফিকেশন চিম)
     function playNotificationChime() {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1062,22 +1082,16 @@
         } catch(e) {}
     }
 
-    // ২. ডিভাইসে ছবি ও ব্যানার সহ ১০০% নির্ভরযোগ্য পুশ প্রদর্শন (APK ও Web)
+    // ২. ডিভাইসে সিস্টেম পুশ নোটিফিকেশন ফায়ার (Android APK & Browser)
     function fireDevicePushNotification(title, message, notifId, bannerImg = '') {
-        if (!("Notification" in window)) return;
-        
-        // পারমিশন না থাকলে পারমিশন নিয়ে নেওয়া
-        if (Notification.permission !== "granted") {
-            Notification.requestPermission();
-            return;
-        }
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
 
         const notifOptions = {
             body: message,
             icon: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
             badge: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
-            vibrate: [300, 100, 300, 100, 300],
-            tag: 'topup-notif-' + (notifId || Date.now()),
+            vibrate: [250, 100, 250, 100, 250],
+            tag: 'tour-notif-' + (notifId || Date.now()),
             renotify: true,
             data: { url: window.location.href }
         };
@@ -1086,21 +1100,18 @@
             notifOptions.image = bannerImg.trim();
         }
 
-        // সরাসরি সিস্টেম নোটিফিকেশন ট্রিগার (Android APK ও ব্রাউজারে সাথে সাথে নোটিফিকেশন ড্রয়ারে শো করবে)
-        try {
-            new Notification(title, notifOptions);
-        } catch(e) {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistration().then(reg => {
-                    if (reg && reg.showNotification) {
-                        reg.showNotification(title, notifOptions);
-                    }
-                }).catch(()=>{});
-            }
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification(title, notifOptions);
+            }).catch(() => {
+                try { new Notification(title, notifOptions); } catch(e) {}
+            });
+        } else {
+            try { new Notification(title, notifOptions); } catch(e) {}
         }
     }
 
-    // ৩. লাইভ ফায়ারস্টোর লিসেনার (অ্যাডমিন প্যানেল থেকে পাঠানো নোটিফিকেশন সরাসরি ইউজারের ফোনে শো হবে)
+    // ৩. ফায়ারস্টোর রিয়েলটাইম লিসেনার (অ্যাপ ওপেন থাকলে ইনস্ট্যান্ট শো করবে)
     function listenRealtimeNotifications() {
         db.collection('notifications').onSnapshot(snapshot => {
             const pushedKey = currentUser ? `topup_pushed_${currentUser.uid}` : 'topup_pushed_guest';
@@ -1110,10 +1121,8 @@
             snapshot.docChanges().forEach(change => {
                 if (change.type === "added") {
                     const n = { id: change.doc.id, ...change.doc.data() };
-                    // অ্যাডমিনের অভ্যন্তরীণ অর্ডার অ্যালার্ট যেন সাধারণ ইউজারের ফোনে না যায়
                     if (n.targetRole === 'admin' || n.isAdminAlert === true) return;
 
-                    // সকল ইউজার অথবা নির্দিষ্ট ইউজার চেক
                     if (!n.targetUserId || n.targetUserId === 'all' || (currentUser && n.targetUserId === currentUser.uid)) {
                         if (!pushedIds.includes(n.id)) {
                             const nTitle = n.title || 'Notification';
@@ -1122,7 +1131,6 @@
 
                             fireDevicePushNotification(nTitle, nMsg, n.id, nImg);
 
-                            // স্ক্রিনে অ্যাপ খোলা থাকলে ওপরের ডানপাশে লাইভ টোস্ট পপ-আপ
                             if (typeof Swal !== 'undefined') {
                                 Swal.fire({
                                     toast: true,
@@ -1148,50 +1156,32 @@
         });
     }
 
-    // =========================================================================
-    // 🔔 APPMINT & HYBRID CRASH-FREE ONESIGNAL REGISTRATION ENGINE
-    // =========================================================================
+    // ৪. OneSignal ব্যাকগ্রাউন্ড সাবস্ক্রিপশন নিশ্চিতকরণ
     function initOneSignalEngine() {
-        db.collection('settings').doc('onesignal').onSnapshot(doc => {
-            if(doc.exists) {
-                const d = doc.data();
-                if (d.app_id && d.app_id.trim()) userOneSignalAppId = d.app_id.trim();
-
-                if (!isOneSignalInitialized && userOneSignalAppId) {
-                    isOneSignalInitialized = true;
-                    window.OneSignalDeferred = window.OneSignalDeferred || [];
-                    window.OneSignalDeferred.push(async function(OneSignal) {
-                        try {
-                            // সার্ভিস ওয়ার্কার পাথ ছাড়াই ইনিট যাতে APK-র ভেতর ক্র্যাশ না করে
-                            await OneSignal.init({
-                                appId: userOneSignalAppId,
-                                allowLocalhostAsSecureOrigin: true,
-                                notifyButton: { enable: false }
-                            });
-
-                            // গ্রাহক ট্যাগ সেট
-                            await OneSignal.User.removeTag("role");
-                            await OneSignal.User.removeTag("user_role");
-                            await OneSignal.User.addTag("user_role", "customer");
-
-                            // নোটিফিকেশন সাবস্ক্রিপশন জোরপূর্বক সক্রিয় করা
-                            if (OneSignal.Notifications) {
-                                await OneSignal.Notifications.requestPermission();
-                            }
-                        } catch(e) {
-                            console.warn("OneSignal Safe Init:", e);
-                        }
-                    });
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async function(OneSignal) {
+            try {
+                if (currentUser) {
+                    await OneSignal.login(currentUser.uid);
+                    await OneSignal.User.addTag("user_role", "customer");
+                    if (currentUser.email) await OneSignal.User.addTag("user_email", currentUser.email);
                 }
+                if (OneSignal.Notifications) {
+                    await OneSignal.Notifications.requestPermission();
+                }
+            } catch(e) {
+                console.warn("OneSignal Registration Error:", e);
             }
         });
 
-        // সরাসরি অ্যান্ড্রয়েড সিস্টেম পারমিশন নিশ্চিতকরণ
-        setTimeout(() => {
-            if ("Notification" in window && Notification.permission !== "granted") {
-                Notification.requestPermission();
-            }
-        }, 1200);
+        // ব্রাউজার নোটিফিকেশন পারমিশন অটো ট্রিগার
+        if ("Notification" in window && Notification.permission === "default") {
+            setTimeout(() => {
+                Notification.requestPermission().then(perm => {
+                    if(perm === "granted") playNotificationChime();
+                });
+            }, 1800);
+        }
 
         listenRealtimeNotifications();
     }
