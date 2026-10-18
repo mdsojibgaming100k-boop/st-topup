@@ -1,0 +1,2731 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <!-- OneSignal Web Push SDK v16 -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRL TOPUP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Bree+Serif&family=Noto+Serif+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <style>
+        /* Global Font: Poppins for everywhere except Home */
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: #e8fafc; 
+        }
+
+        /* Home Panel Specific Font: Bree Serif */
+        #home-sec {
+            font-family: 'Bree Serif', serif;
+        }
+        
+        /* Account Section Font: Bree Serif for English */
+        #account-sec {
+            font-family: 'Bree Serif', serif;
+        }
+        
+        /* Tutorial Section Font: Bree Serif for English */
+        #tutorial-sec {
+            font-family: 'Bree Serif', serif;
+        }
+        
+        .nav-gradient { background: white; color: #1e293b; }
+        .active-tab { color: #03a9f4 !important; }
+        .hidden { display: none !important; }
+        
+        /* Language-specific fonts */
+        .font-en { font-family: 'Poppins', sans-serif; }
+        .font-bn { font-family: 'Noto Serif Bengali', serif; }
+        
+        /* Auto-detect language */
+        .lang-auto { 
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        /* Home section er vitor jodi lang-auto class thake, sheta Bree Serif hobe */
+        #home-sec .lang-auto {
+            font-family: 'Bree Serif', serif;
+        }
+
+        .lang-auto:lang(bn), .lang-auto:lang(bn-BD) { 
+            font-family: 'Noto Serif Bengali', serif;
+        }
+        
+        .notice-scroll { animation: scroll-left 15s linear infinite; display: inline-block; white-space: nowrap; }
+        @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        
+        .method-card { transition: all 0.2s; border: 2px solid transparent; }
+        .method-card:active { transform: scale(0.95); }
+        
+        @keyframes fadeInUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-fade-in { animation: fadeInUp 0.4s ease-out forwards; }
+
+        /* PRODUCT CARD STYLES UPDATED FOR NEW UI */
+        .product-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .product-card:hover { border-color: #81d4fa; }
+        .product-card.selected {
+            border: 1.5px solid #03a9f4;
+            background-color: #f0f9ff;
+        }
+        .product-bullet {
+            height: 12px; width: 12px; background-color: #e5e7eb; border-radius: 50%; margin-right: 8px;
+        }
+        .product-card.selected .product-bullet { background-color: #03a9f4; }
+        
+        #fab-container.is-open #fab-toggler {
+            background-color: #dc2626; /* red-600 */
+        }
+        #fab-container.is-open #fab-icon-open {
+            transform: rotate(-180deg) scale(0);
+            opacity: 0;
+        }
+        #fab-container.is-open #fab-icon-close {
+            transform: scale(1) rotate(0);
+            opacity: 1;
+        }
+        #fab-container.is-open #fab-options {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .aspect-video {
+            aspect-ratio: 16 / 9;
+        }
+
+        /* --- NEW ADD MONEY STYLES --- */
+        .step-transition {
+            animation: slideInRight 0.3s ease-out forwards;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(10%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Remove arrows from number input */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        
+        /* Method Specific Colors for Dynamic UI */
+        .theme-bkash { background-color: #e2136e !important; border-color: #e2136e !important; }
+        .theme-nagad { background-color: #f7941d !important; border-color: #f7941d !important; }
+        .theme-rocket { background-color: #8c3494 !important; border-color: #8c3494 !important; }
+        
+        .text-theme-bkash { color: #e2136e !important; }
+        .text-theme-nagad { color: #f7941d !important; }
+        .text-theme-rocket { color: #8c3494 !important; }
+
+        /* PAYMENT OPTION CARD STYLES */
+        .pay-option-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .pay-option-card.selected {
+            border: 2px solid #ef4444; /* Red border for selected like image */
+        }
+        .pay-option-card.selected::before {
+            content: '\f00c';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: #ef4444;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-bottom-right-radius: 6px;
+            z-index: 10;
+        }
+
+    </style>
+</head>
+<body class="select-none bg-slate-50">
+
+<div id="app-content" class="relative max-w-md mx-auto bg-slate-50 min-h-screen shadow-2xl">
+    <header class="bg-white/90 backdrop-blur-md p-4 sticky top-0 z-40 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-2">
+            <img id="header-logo-img" src="https://placehold.co/150x50?text=Logo" class="h-16 object-contain">
+        </div>
+        <div id="header-balance-container" class="hidden bg-sky-500 px-4 py-2 rounded-full text-sm font-bold text-white border border-sky-600 shadow-md">
+            <i class="fas fa-wallet mr-1"></i> ৳ <span id="header-balance">0</span>
+        </div>
+        <div id="header-login-container">
+            <button onclick="showAuthPage()" class="bg-sky-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md hover:bg-sky-700 transition">
+                <i class="fas fa-sign-in-alt mr-1"></i> Login
+            </button>
+        </div>
+    </header>
+
+    <div id="notice-section" class="mb-0 px-3">
+        <div class="bg-sky-500 text-white p-4 relative">
+            <button onclick="this.parentElement.parentElement.style.display='none'" class="absolute top-2 right-2 text-white/80 hover:text-white transition">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+            <div class="pr-6">
+                <div class="font-bold text-sm mb-1">Notice</div>
+                <div id="notice-text" class="text-sm">স্বাগতম আমাদের অ্যাপে...</div>
+            </div>
+        </div>
+    </div>
+
+    <main class="p-3 relative pb-20">
+        
+        <section id="auth-sec" class="hidden animate-fade-in">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative p-6">
+                
+                <button onclick="showSec('home')" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition z-10">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+
+                <div id="login-view">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Login</h2>
+
+                    <button onclick="handleGoogleLogin()" class="w-full bg-white border border-gray-300 text-gray-700 font-semibold py-2.5 rounded-lg shadow-sm hover:bg-gray-50 transition flex items-center justify-center gap-3 mb-6">
+                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google">
+                        Login with Google
+                    </button>
+
+                    <div class="relative flex py-2 items-center mb-6">
+                        <div class="flex-grow border-t border-gray-200"></div>
+                        <span class="flex-shrink-0 mx-4 text-gray-400 text-xs font-medium">Or sign in with credentials</span>
+                        <div class="flex-grow border-t border-gray-200"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                        <input type="email" id="login-email" placeholder="Email" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                        <input type="password" id="login-pass" placeholder="Password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors">
+                    </div>
+
+                    <div class="flex justify-end mb-6">
+                        <button type="button" onclick="toggleAuth('forgot')" class="text-xs font-semibold text-sky-600 hover:underline">
+                            Forgot Password?
+                        </button>
+                    </div>
+
+                    <button onclick="handleLogin()" class="w-full bg-sky-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-sky-700 transition duration-300">
+                        Login
+                    </button>
+
+                    <div class="mt-6 text-center text-sm text-gray-600">
+                        New user to DRL topup.com? <button onclick="toggleAuth('register')" class="text-sky-600 font-bold hover:underline">Register Now</button>
+                    </div>
+                </div>
+
+                <div id="register-view" class="hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Register</h2>
+
+                    <button onclick="handleGoogleLogin()" class="w-full bg-white border border-gray-300 text-gray-700 font-semibold py-2.5 rounded-lg shadow-sm hover:bg-gray-50 transition flex items-center justify-center gap-3 mb-6">
+                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google">
+                        Sign up with Google
+                    </button>
+
+                    <div class="relative flex py-2 items-center mb-6">
+                        <div class="flex-grow border-t border-gray-200"></div>
+                        <span class="flex-shrink-0 mx-4 text-gray-400 text-xs font-medium">Or sign up with credentials</span>
+                        <div class="flex-grow border-t border-gray-200"></div>
+                    </div>
+
+                    <div class="space-y-4 mb-6">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Name</label>
+                            <input type="text" id="reg-name" placeholder="Name" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Phone</label>
+                            <input type="number" id="reg-phone" placeholder="Phone" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Email</label>
+                            <input type="email" id="reg-email" placeholder="Email" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Password</label>
+                            <input type="password" id="reg-pass" placeholder="Password" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                        </div>
+                    </div>
+
+                    <button onclick="handleRegister()" class="w-full bg-sky-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-sky-700 transition duration-300">
+                        Register
+                    </button>
+
+                    <div class="mt-6 text-center text-sm text-gray-600">
+                        Already member? <button onclick="toggleAuth('login')" class="text-sky-600 font-bold hover:underline">Login Now</button>
+                    </div>
+                </div>
+
+                <!-- OTP VERIFICATION VIEW -->
+                <div id="otp-view" class="hidden text-center">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Verify Your Email</h2>
+                    <p class="text-xs text-gray-500 mb-6">A 6-digit verification code has been sent to:<br><b id="otp-target-email" class="text-sky-600 text-sm"></b></p>
+
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-xs font-bold mb-2 uppercase tracking-wider">Enter 6-Digit Code</label>
+                        <input type="text" id="reg-otp" maxlength="6" placeholder="123456" class="w-full text-center text-2xl font-bold tracking-[8px] px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-sky-500 font-mono">
+                    </div>
+
+                    <button onclick="handleVerifySignupOtp()" class="w-full bg-sky-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-sky-700 transition duration-300 mb-3">
+                        Verify & Create Account
+                    </button>
+
+                    <button onclick="cancelSignupOtp()" class="text-red-500 text-xs font-semibold hover:underline">
+                        Cancel & Change Email
+                    </button>
+                </div>
+
+                <!-- FORGOT PASSWORD VIEW -->
+                <div id="forgot-view" class="hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Reset Password</h2>
+                    <p class="text-xs text-gray-500 mb-6">আপনার রেজিস্টার্ড জিমেইল দিন, পাসওয়ার্ড রিসেট করার লিংক আপনার জিমেইলে পাঠিয়ে দেওয়া হবে।</p>
+
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Your Email</label>
+                        <input type="email" id="forgot-email" placeholder="Enter your email" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors">
+                    </div>
+
+                    <button onclick="handleSendPasswordReset()" class="w-full bg-sky-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-sky-700 transition duration-300 mb-4">
+                        Send Reset Link
+                    </button>
+
+                    <div class="text-center">
+                        <button onclick="toggleAuth('login')" class="text-sm text-sky-600 font-bold hover:underline inline-flex items-center gap-1">
+                            <i class="fas fa-arrow-left text-xs"></i> Back to Login
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="home-sec" class="animate-fade-in pb-8">
+            <div id="banner-container" class="mb-6 overflow-hidden shadow-md h-44 bg-gray-200 relative group">
+                <div id="slider-wrapper" class="flex h-full w-full transition-transform duration-500 ease-out">
+                    <img src="https://placehold.co/600x300/29b6f6/FFF?text=Loading..." class="w-full h-full object-cover flex-shrink-0">
+                </div>
+                <div id="slider-dots" class="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-10"></div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 mb-5 px-2">
+                <a id="home-whatsapp" href="#" class="bg-white py-3 px-3 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.05)] border border-gray-100 flex items-center justify-between active:scale-95 transition h-12 no-underline">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-green-50 flex-shrink-0">
+                        <i class="fab fa-whatsapp text-xl text-[#25D366]"></i>
+                    </div>
+                    <span class="text-[12px] font-bold text-gray-700 lang-auto">WhatsApp</span>
+                </a>
+
+                <a id="home-telegram" href="#" class="bg-white py-3 px-3 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.05)] border border-gray-100 flex items-center justify-between active:scale-95 transition h-12 no-underline">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-blue-50 flex-shrink-0">
+                        <i class="fab fa-telegram-plane text-xl text-[#0088cc]"></i>
+                    </div>
+                    <span class="text-[12px] font-bold text-gray-700 lang-auto">Telegram</span>
+                </a>
+
+                <a id="home-app-dl" href="#" target="_blank" class="bg-white py-3 px-3 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.05)] border border-gray-100 flex items-center justify-between active:scale-95 transition h-12 no-underline">
+                    <div class="w-8 h-8 rounded-full overflow-hidden shadow-sm flex-shrink-0">
+                        <img src="https://i.ibb.co/0j8Jxx63/Screenshot-20260811-023509.jpg" 
+                             class="w-full h-full object-cover" alt="App DL">
+                    </div>
+                    <span class="text-[12px] font-bold text-gray-700 leading-tight lang-auto">DOWNLOAD APP<br></span>
+                </a>
+            </div>
+            
+            <div id="services-list" class="space-y-6 mb-8">
+                <div class="col-span-3 text-center py-10"><i class="fas fa-spinner fa-spin text-sky-500"></i> Loading Games...</div>
+            </div>
+
+            <div class="mt-8 mb-6">
+                <h3 class="text-center font-bold text-gray-700 text-xl mb-3 lang-auto" style="letter-spacing: 0.5px">Latest Orders</h3>
+                <div id="latest-orders-list" class="space-y-3 px-1">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between animate-pulse">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full"></div>
+                            <div>
+                                <div class="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                                <div class="h-3 bg-gray-200 rounded w-32"></div>
+                            </div>
+                        </div>
+                        <div class="h-6 bg-gray-200 rounded-full w-20"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="promo-banner-container" class="mt-8 mb-6 px-1 hidden">
+                <a id="promo-banner-link" href="#" target="_blank" class="block w-full aspect-video rounded-xl overflow-hidden shadow-md">
+                    <img id="promo-banner-img" src="" class="w-full h-full object-cover">
+                </a>
+            </div>
+            
+            <div class="mt-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div class="text-center mb-5">
+                    <img id="about-logo-img" src="https://placehold.co/150x50?text=Logo" class="h-10 mx-auto object-contain mb-2">
+                    <h2 id="about-site-name" class="text-lg font-bold text-gray-800 lang-auto">DRL TOP UP SHOP</h2>
+                    <p class="text-sm text-gray-500 mt-1">Free Fire Diamond TopUp<br>Largest TopUp Site In Bangladesh</p>
+                </div>
+
+                <p class="text-xs text-center text-gray-600 mb-5 px-2 leading-relaxed">
+                    <b>নোটিশ:</b> যেকোন অর্ডার জনিত সমস্যায় মেসেজারে অর্ডারের স্ক্রিনশট এবং পেমেন্টের ট্রানজেকশন আইডি লিখে মেসেজ দিন। ১৮ বছরের নিচে অভিভাবকের অনুমতি ছাড়া অর্ডার করা সম্পূর্ণভাবে নিষিদ্ধ।
+                </p>
+
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <a id="about-facebook" href="#" target="_blank" class="flex items-center justify-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition no-underline">
+                        <i class="fab fa-facebook-f text-lg text-[#1877F2]"></i> <span class="font-semibold text-sm text-gray-700 lang-auto">Facebook</span>
+                    </a>
+                    <a id="about-youtube" href="#" target="_blank" class="flex items-center justify-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition no-underline">
+                        <i class="fab fa-youtube text-lg text-[#FF0000]"></i> <span class="font-semibold text-sm text-gray-700 lang-auto">YouTube</span>
+                    </a>
+                    <a id="about-telegram" href="#" target="_blank" class="flex items-center justify-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition no-underline">
+                        <i class="fab fa-telegram-plane text-lg text-[#0088cc]"></i> <span class="font-semibold text-sm text-gray-700 lang-auto">Telegram</span>
+                    </a>
+                    <a id="about-whatsapp" href="#" target="_blank" class="flex items-center justify-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition no-underline">
+                        <i class="fab fa-whatsapp text-lg text-[#25D366]"></i> <span class="font-semibold text-sm text-gray-700 lang-auto">WhatsApp</span>
+                    </a>
+                </div>
+                
+                <h3 class="font-bold text-gray-800 text-base text-center mb-4 lang-auto">Contact Us</h3>
+                <div class="space-y-3">
+                    <a id="contact-whatsapp" href="#" class="block bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition no-underline">
+                         <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fab fa-whatsapp text-green-500"></i>
+                                <span class="font-semibold text-sm text-gray-700 lang-auto">Whatsapp HelpLine</span>
+                            </div>
+                            <span class="text-xs text-gray-500">সকাল ৮টা থেকে রাত ১২টা</span>
+                        </div>
+                    </a>
+                    <a id="contact-telegram" href="#" class="block bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition no-underline">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fab fa-telegram-plane text-sky-500"></i>
+                                <span class="font-semibold text-sm text-gray-700 lang-auto">Telegram HelpLine</span>
+                            </div>
+                            <span class="text-xs text-gray-500">সকাল ৮টা থেকে রাত ১২টা</span>
+                        </div>
+                    </a>
+                    <a id="contact-facebook" href="#" class="block bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition no-underline">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fab fa-facebook-f text-blue-600"></i>
+                                <span class="font-semibold text-sm text-gray-700 lang-auto">Facebook  HelpLine </span>
+                            </div>
+                            <span class="text-xs text-gray-500"> সকাল ৮টা থেকে রাত ১২টা</span>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="text-center border-t border-gray-200 pt-4 mt-6">
+                    <p class="text-xs text-gray-500">
+              © 2026 DRL TOPUP | All Rights Reserved | Developed By <a href="https://wa.me/8801409084819?text=%E0%A6%85%E0%A7%8D%E0%A6%AF%E0%A6%BE%E0%A6%AA%20%E0%A6%AC%E0%A6%BE%E0%A6%A8%E0%A6%BE%E0%A6%A4%E0%A7%87%20%E0%A6%9A%E0%A6%BE%E0%A6%87%E0%A5%A4%20%E0%A6%86%E0%A6%AA%E0%A6%A8%E0%A6%BE%E0%A6%B0%20%E0%A6%95%E0%A6%BE%E0%A6%9B%E0%A7%87%20%E0%A6%95%E0%A7%80%20%E0%A6%95%E0%A7%80%20%E0%A6%A7%E0%A6%B0%E0%A6%A8%E0%A7%87%E0%A6%B0%20%E0%A6%85%E0%A7%8D%E0%A6%AF%E0%A6%BE%E0%A6%AA%20%E0%A6%AA%E0%A6%BE%E0%A6%AC%E0%A7%8B%3F" target="_blank" class="font-bold text-sky-600 no-underline hover:underline">SOJIB</a>
+                   </p>
+                </div>
+            </div>
+            </section>
+
+        <section id="tutorial-sec" class="hidden animate-fade-in pb-20">
+            <div class="bg-white">
+                <div class="p-6 border-b border-gray-100">
+                    <h2 class="font-semibold text-xl text-gray-800 mb-1 lang-auto">Video Tutorials</h2>
+                    <p class="text-sm text-gray-500">Learn how to use our services</p>
+                </div>
+                
+                <div class="p-4">
+                    <div id="tutorial-list-container" class="space-y-4"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="history-sec" class="hidden animate-fade-in pb-24">
+            <div class="bg-white border-b border-gray-200 px-4 py-3">
+                <h2 class="text-lg font-bold text-gray-800">Order History</h2>
+            </div>
+            <div id="history-list" class="px-4 py-3">
+                </div>
+        </section>
+
+        <section id="topup-sec" class="hidden animate-fade-in pb-10 bg-slate-50">
+            <div class="bg-white p-3 rounded-xl shadow-sm flex items-center gap-4 mb-4 border border-gray-100 mx-2 mt-2">
+                <button onclick="showSec('home')" class="text-gray-600 hover:text-sky-500 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 absolute top-4 right-4">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+                <img id="topup-game-img" src="" class="w-16 h-16 rounded-xl object-cover shadow-sm">
+                <div>
+                    <h3 class="font-bold text-gray-800 text-base" id="topup-game-title">Game Name</h3>
+                    <p class="text-xs text-gray-700 font-medium" id="topup-sub-title">Game / Topup</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-3 rounded-xl shadow-sm mb-4 border border-gray-100 mx-2">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="bg-red-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold shadow-md">1</span>
+                    <h3 class="font-bold text-gray-800 text-sm">Select Recharge</h3>
+                </div>
+
+                <div id="product-loader" class="text-center py-10 hidden">
+                    <i class="fas fa-spinner fa-spin text-sky-500 text-2xl"></i>
+                </div>
+
+                <div id="products-grid" class="grid grid-cols-2 gap-2">
+                    </div>
+                
+                <div class="mt-3 text-right">
+                   <a href="#" onclick="showSec('tutorial')" class="text-xs text-gray-600 hover:text-sky-600 no-underline">
+                       <i class="fas fa-external-link-alt"></i> কিভাবে অর্ডার করবেন ?
+                   </a>
+                </div>
+            </div>
+
+            <div id="player-id-section" class="bg-white p-3 rounded-xl shadow-sm mb-4 border border-gray-100 mx-2">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="bg-red-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold shadow-md">2</span>
+                    <h3 class="font-bold text-gray-800 text-sm">Account Info</h3>
+                </div>
+                
+                <div class="mb-2">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Player Id</label>
+                    <input type="text" id="game-player-id" placeholder="Player Id" class="w-full bg-white border border-gray-300 p-2 rounded focus:outline-none focus:border-sky-500 text-sm text-gray-700">
+                </div>
+                
+                <div id="uidCheckBtn" onclick="uidCheck()" class="w-full bg-gradient-to-r from-red-700 to-orange-500 text-white text-center py-2 rounded font-bold text-sm shadow cursor-pointer relative overflow-hidden">
+                    Click to check player name
+                    <div class="absolute inset-0 bg-white opacity-10 transform skew-x-12 translate-x-full animate-shine"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-3 rounded-xl shadow-sm mb-4 border border-gray-100 mx-2">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="bg-red-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold shadow-md">3</span>
+                    <h3 class="font-bold text-gray-800 text-sm">Select one option</h3>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 mb-2">
+                    <div onclick="selectPaymentOption('wallet')" id="opt-wallet" class="pay-option-card selected">
+                        <div class="h-20 flex flex-col items-center justify-center p-2">
+                            <div class="flex items-center gap-1">
+                                <i class="fas fa-wallet text-orange-500 text-2xl"></i>
+                                <span class="font-bold text-lg text-gray-800">ওয়ালেট</span>
+                            </div>
+                        </div>
+                        <div class="bg-gray-200 text-center py-1 text-xs font-bold text-gray-600">Wallet Pay</div>
+                    </div>
+
+                    <div onclick="selectPaymentOption('instant')" id="opt-instant" class="pay-option-card">
+                        <div class="h-20 flex items-center justify-center gap-1 p-2">
+                             <img src="https://i.ibb.co/TBwjc0qy/pay-logo-1764254679.png" class="h-5 object-contain">
+                             <img src="https://i.ibb.co/KxSxSS0V/pay-logo-1764254942.png" class="h-4 object-contain">
+                             <img src="https://i.ibb.co/tMj29HKt/vecteezy-rocket-color-logo-mobile-banking-icon-68706013.png" class="h-5 object-contain">
+                        </div>
+                        <div class="bg-gray-200 text-center py-1 text-xs font-bold text-gray-600">Instant Pay</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 mb-4 px-1">
+                    <i class="fas fa-info-circle text-gray-400 text-xs"></i>
+                    <p class="text-[10px] text-gray-500">আপনার একাউন্ট ব্যালেন্স <span class="text-blue-600 font-bold">৳<span id="topup-balance-display">0.00</span></span> <i class="fas fa-redo text-[10px] text-gray-400"></i></p>
+                </div>
+
+                <button onclick="processOrder()" class="w-full bg-[#4a148c] text-white py-3 rounded-lg font-bold shadow-lg hover:bg-[#380e6d] transition text-sm">
+                     Buy Now
+                </button>
+            </div>
+
+            <div id="game-rules-box" class="bg-white p-3 rounded-xl shadow-sm mb-6 border border-gray-100 mx-2">
+                 <h3 class="font-bold text-gray-800 text-sm mb-2">Rules & Conditions</h3>
+                 <div id="game-rules-text" class="text-xs text-gray-700 leading-relaxed space-y-2">
+                    </div>
+            </div>
+            
+            <span id="total-price" class="hidden">0</span>
+        </section>
+
+        <section id="addmoney-sec" class="hidden animate-fade-in pb-20 bg-[#f8fafc] min-h-screen">
+            
+            <div id="am-step-1" class="step-transition">
+                <div class="bg-white p-6 shadow-sm border-b border-gray-100 mb-6">
+                    <h2 class="font-bold text-lg text-gray-800 uppercase tracking-wide">Add Money</h2>
+                </div>
+
+                <div class="px-4">
+                    <div class="bg-white rounded-lg p-8 shadow-sm border border-gray-200 mb-6 text-center">
+                        <label class="block text-gray-500 text-sm font-bold mb-4 uppercase tracking-wider">
+                            Enter Amount to Deposit
+                        </label>
+                        
+                        <div class="relative mb-6 max-w-[200px] mx-auto">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-2xl font-bold text-gray-400">৳</span>
+                            <input type="number" id="new-amount-input" value="100" 
+                                   class="w-full border-b-2 border-gray-300 py-2 pl-8 pr-2 text-center text-3xl font-bold text-gray-800 focus:outline-none focus:border-red-500 transition-colors bg-transparent" 
+                                   placeholder="100">
+                        </div>
+
+                        <button onclick="goToMethodStep()" 
+                                class="w-full bg-sky-600 text-white font-bold py-3.5 rounded shadow-lg hover:bg-sky-700 active:scale-95 transition-all text-sm uppercase tracking-wide">
+                            PROCEED TO PAYMENT
+                        </button>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fab fa-youtube text-red-600"></i>
+                            <h3 class="font-bold text-gray-700 text-sm">Tutorial: How to Add Money</h3>
+                        </div>
+                        <div class="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200 p-1">
+                            <div class="relative w-full aspect-video">
+                                <iframe id="new-tutorial-video" 
+                                        class="w-full h-full rounded"
+                                        src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
+                                        title="How to Add Money"
+                                        frameborder="0" 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowfullscreen>
+                                </iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="am-step-2" class="hidden step-transition h-screen flex flex-col bg-[#f0f4f7]">
+                <div class="bg-white p-3 flex items-center justify-between shadow-sm sticky top-0 z-10">
+                    <button onclick="backToAmountStep()" class="text-gray-500 w-8 h-8 flex items-center justify-center">
+                         <i class="fas fa-arrow-left text-lg"></i>
+                    </button>
+                    <div class="text-right">
+                        <img src="" id="step2-logo" class="h-8 object-contain inline-block">
+                    </div>
+                    <button onclick="showSec('home')" class="text-gray-400">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 flex flex-col justify-center items-center px-6">
+                    <div class="bg-white rounded-full w-32 h-32 flex items-center justify-center shadow-sm border border-gray-100 mb-6 p-4">
+                        <img src="" id="step2-center-logo" class="w-full object-contain">
+                    </div>
+                    
+                    <h2 class="text-gray-600 font-medium mb-8 text-lg">Auto Pay</h2>
+
+                    <div class="w-full bg-[#003399] text-white py-2.5 text-center text-sm font-bold rounded-t-lg mb-0 shadow-md">
+                        মোবাইল ব্যাংকিং
+                    </div>
+                    
+                    <div class="w-full grid grid-cols-2 gap-4 bg-white p-4 rounded-b-lg shadow-sm border border-gray-200 border-t-0">
+                        <button onclick="goToPaymentPage('bKash', 'theme-bkash', 'https://i.ibb.co/TBwjc0qy/pay-logo-1764254679.png')" 
+                                class="bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-center hover:border-pink-500 hover:shadow-md transition h-16">
+                            <img src="https://i.ibb.co/TBwjc0qy/pay-logo-1764254679.png" class="h-8 object-contain">
+                        </button>
+                        
+                        <button onclick="goToPaymentPage('Nagad', 'theme-nagad', 'https://i.ibb.co/YFf435ms/Nagad.png')" 
+                                class="bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-center hover:border-orange-500 hover:shadow-md transition h-16">
+                            <img src="https://i.ibb.co/YFf435ms/Nagad.png" class="h-6 object-contain">
+                        </button>
+
+                        <button onclick="goToPaymentPage('Rocket', 'theme-rocket', 'https://i.ibb.co/W4TXLGhm/file-000000005c2081fabc9814dd0bac2a9d.png')" 
+                                class="bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-center hover:border-purple-500 hover:shadow-md transition h-16">
+                            <img src="https://i.ibb.co/W4TXLGhm/file-000000005c2081fabc9814dd0bac2a9d.png" class="h-6 object-contain">
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="am-step-3" class="hidden step-transition min-h-screen bg-[#f0f4f7] relative pb-24">
+                
+                <div class="bg-white p-3 shadow-sm flex justify-between items-center sticky top-0 z-20">
+                    <button onclick="backToMethodStep()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-bold text-gray-500">English <i class="fas fa-caret-down ml-1"></i></span>
+                        <button onclick="showSec('home')" class="text-gray-400 text-lg"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+
+                <div class="text-center py-6">
+                    <img id="pay-method-logo" src="" class="h-12 mx-auto object-contain drop-shadow-sm">
+                </div>
+
+                <div class="px-4">
+                    <div class="bg-white rounded-xl p-4 flex items-center gap-4 mb-4 shadow-sm">
+                        <div class="w-12 h-12 rounded-full border border-gray-100 p-1">
+                            <img id="pay-site-logo-small" src="" class="w-full h-full rounded-full object-cover">
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-800 font-bold">Auto Pay</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-4 mb-4 shadow-sm flex items-center gap-2">
+                        <span class="text-lg font-bold text-gray-700">৳</span>
+                        <span id="pay-amount-display" class="text-xl font-bold text-gray-800">100</span>
+                    </div>
+
+                    <div id="payment-theme-card" class="rounded-xl shadow-lg overflow-hidden text-white mb-6 relative transition-colors duration-300">
+                        
+                        <div class="p-5 text-center">
+                            <h3 class="font-bold text-lg mb-4 drop-shadow-md">ট্রানজেকশন আইডি দিন</h3>
+                            <input type="text" id="pay-trx-input" 
+                                   class="w-full bg-white text-gray-800 text-center py-3 rounded text-sm font-bold shadow-inner focus:outline-none placeholder-gray-400" 
+                                   placeholder="ট্রানজেকশন আইডি দিন">
+                        </div>
+
+                        <div class="bg-black/10 p-5 text-sm space-y-4 backdrop-blur-sm border-t border-white/20">
+                            
+                            <div class="flex gap-2">
+                                <span class="mt-1">•</span>
+                                <p>*247# ডায়াল করে আপনার <span class="method-name font-bold">bKash</span> মোবাইল মেনুতে যান অথবা <span class="method-name font-bold">bKash</span> অ্যাপে যান।</p>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <span class="mt-1">•</span>
+                                <p>"Send Money" -এ ক্লিক করুন।</p>
+                            </div>
+
+                            <div class="flex flex-col gap-1 pl-3">
+                                <p>• প্রাপক নম্বর হিসেবে এই নম্বরটি লিখুন:</p>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span id="pay-admin-number" class="text-2xl font-bold text-yellow-300 tracking-wider">Loading...</span>
+                                    <button onclick="copyPayNumber()" class="bg-black/30 hover:bg-black/50 text-white px-2 py-1 rounded text-[10px] font-bold transition flex items-center gap-1 border border-white/30">
+                                        <i class="far fa-copy"></i> COPY
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <span class="mt-1">•</span>
+                                <p>টাকার পরিমাণ: <span id="pay-amount-text" class="font-bold text-yellow-300">100</span></p>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <span class="mt-1">•</span>
+                                <p>নিশ্চিত করতে এখন আপনার <span class="method-name font-bold">bKash</span> মোবাইল মেনু পিন লিখুন।</p>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <span class="mt-1">•</span>
+                                <p>সবকিছু ঠিক থাকলে, আপনি <span class="method-name font-bold">bKash</span> থেকে একটি নিশ্চিতকরণ বার্তা পাবেন।</p>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <span class="mt-1">•</span>
+                                <p class="font-bold text-yellow-200">এখন উপরের বক্সে আপনার Transaction ID দিন এবং নিচের VERIFY বাটনে ক্লিক করুন।</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 max-w-md mx-auto z-50 rounded-t-xl">
+                    <button onclick="handleNewVerify()" 
+                            class="w-full bg-[#b71c1c] text-white font-bold py-3 rounded shadow-lg hover:bg-red-800 transition active:scale-95 text-lg tracking-wider">
+                        VERIFY
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="account-sec" class="hidden animate-fade-in pb-24 bg-[#f6f8fa] min-h-screen">
+            <div class="flex flex-col items-center pt-8 pb-4">
+                <div class="relative mb-2">
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-b from-[#4DD0E1] to-[#0288D1] p-1 shadow-md">
+                        <div class="w-full h-full rounded-full bg-white p-[2px]">
+                            <div id="profile-img-container" class="w-full h-full rounded-full bg-[#00e676] overflow-hidden flex items-center justify-center">
+                                <span id="profile-initial" class="text-4xl font-normal text-black hidden"></span>
+                                <img id="acc-profile-img" src="" class="w-full h-full object-cover hidden">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h2 class="text-sm font-bold text-[#1976d2] mb-1">Hi, <span id="acc-profile-name">User</span></h2>
+                
+                <div class="flex items-center gap-1 text-black font-bold text-[11px]">
+                    <span>Available Balance : <span id="acc-profile-balance">0</span> Tk</span>
+                    <i class="fas fa-redo-alt text-[10px] cursor-pointer text-gray-800 hover:rotate-180 transition-transform"></i>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 px-4 mb-6">
+                <div class="bg-white py-3 px-2 rounded-lg border border-[#2196F3] text-center shadow-sm">
+                    <h3 class="text-[#2196F3] font-bold text-base mb-1" id="acc-support-pin">...</h3>
+                    <p class="text-black font-bold text-[11px]">Support Pin</p>
+                </div>
+                
+                <div class="bg-white py-3 px-2 rounded-lg border border-[#2196F3] text-center shadow-sm">
+                    <h3 class="text-[#2196F3] font-bold text-base mb-1"><span id="acc-weekly-spent">0</span> ৳</h3>
+                    <p class="text-black font-bold text-[11px]">Weekly Spent</p>
+                </div>
+                
+                <div class="bg-white py-3 px-2 rounded-lg border border-[#2196F3] text-center shadow-sm">
+                    <h3 class="text-[#2196F3] font-bold text-base mb-1" id="acc-total-spent">0</h3>
+                    <p class="text-black font-bold text-[11px]">Total Spent</p>
+                </div>
+                
+                <div class="bg-white py-3 px-2 rounded-lg border border-[#2196F3] text-center shadow-sm">
+                    <h3 class="text-[#2196F3] font-bold text-base mb-1" id="acc-total-orders">0</h3>
+                    <p class="text-black font-bold text-[11px]">Total Order</p>
+                </div>
+            </div>
+
+            <div class="px-4 mb-4">
+                <div class="bg-white shadow-sm">
+                    <div class="px-4 py-3 flex items-center gap-2">
+                        <i class="fas fa-folder-open text-black text-sm"></i>
+                        <h3 class="font-bold text-sm text-black">Account Information</h3>
+                    </div>
+                    <div class="border-t border-gray-100 p-4 space-y-4">
+                        <div class="bg-white rounded-lg border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] py-4 text-center">
+                            <div class="flex items-center justify-center gap-2 mb-1 text-gray-500">
+                                <i class="fas fa-redo-alt text-xs"></i>
+                                <span class="text-sm font-medium">৳<span id="acc-balance-card">0.00</span></span>
+                            </div>
+                            <p class="font-bold text-sm text-black">Available Balance</p>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] py-4 text-center">
+                            <div class="flex justify-center mb-2">
+                                <div class="relative text-[#007bff]">
+                                    <i class="fas fa-certificate text-4xl"></i>
+                                    <i class="fas fa-check text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm"></i>
+                                </div>
+                            </div>
+                            <p class="font-bold text-sm text-black">Account Verified!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-4 mb-6">
+                <div class="bg-white shadow-sm">
+                    <div class="px-4 py-3 flex items-center gap-2">
+                        <i class="fas fa-info-circle text-black text-sm"></i>
+                        <h3 class="font-bold text-sm text-black">User Information</h3>
+                    </div>
+                    <div class="border-t border-gray-100 p-4">
+                        <p class="text-[11px] font-bold text-black mb-2">email : <span id="acc-email" class="font-bold text-black">user@email.com</span></p>
+                        <p class="text-[11px] font-bold text-black">Phone : <span id="acc-phone" class="font-bold text-black">Not Available</span></p>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                     <button onclick="handleLogout()" class="w-full p-3 bg-white shadow-sm flex items-center justify-center gap-2 hover:bg-red-50 transition duration-300">
+                        <i class="fas fa-sign-out-alt text-red-500"></i>
+                        <span class="font-bold text-sm text-red-500">Log Out</span>
+                     </button>
+                </div>
+            </div>
+        </section>
+        </main>
+    
+    <div id="fab-container" class="fixed bottom-20 right-4 z-50">
+        <div class="flex items-center gap-2">
+            <div id="fab-help-text" class="bg-red-500 text-white text-xs font-semibold px-2 py-1.5 rounded-lg shadow-md transition-opacity duration-300">
+                সাহায্য লাগবে ?
+            </div>
+            
+            <div class="relative flex flex-col items-center">
+                <div id="fab-options" class="absolute bottom-14 space-y-1.5 transition-all duration-300 ease-out transform translate-y-4 opacity-0 pointer-events-none">
+                     <a id="link-whatsapp" href="#" target="_blank" class="flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-lg hover:bg-gray-100 no-underline">
+                        <i class="fab fa-whatsapp text-xl text-[#25D366]"></i>
+                    </a>
+                     <a id="link-telegram" href="#" target="_blank" class="flex items-center justify-center w-10 h-10 bg-white rounded-full shadow-lg hover:bg-gray-100 no-underline">
+                        <i class="fab fa-telegram-plane text-xl text-[#0088cc]"></i>
+                    </a>
+                </div>
+                <button id="fab-toggler" onclick="toggleFabMenu()" class="relative w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-xl shadow-xl transition-all duration-300 ease-in-out hover:bg-red-600 focus:outline-none">
+                    <i id="fab-icon-open" class="fas fa-phone-alt transition-all duration-300 transform"></i>
+                    <i id="fab-icon-close" class="fas fa-times absolute transition-all duration-300 transform scale-0 opacity-0 -rotate-180"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 w-full bg-white/95 backdrop-blur-sm border-t border-gray-100/50 py-3 px-6 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-40 max-w-md mx-auto left-0 right-0 rounded-t-[20px]">
+        <div class="flex justify-between items-center">
+            <button onclick="showSec('home')" class="nav-item flex flex-col items-center gap-1.5 text-gray-700 transition-all duration-300 hover:text-sky-500 active-tab group" id="nav-home">
+                <img src="https://img.icons8.com/?size=100&id=OXVih02dFZ53&format=png&color=000000" class="w-6 h-6 group-hover:scale-110 transition-transform duration-300" alt="Home">
+                <span class="text-[10px] font-semibold tracking-wide">Home</span>
+            </button>
+            
+            <button onclick="showSec('tutorial')" class="nav-item flex flex-col items-center gap-1.5 text-gray-700 transition-all duration-300 hover:text-sky-500 group" id="nav-tutorial">
+                <img src="https://img.icons8.com/?size=100&id=15979&format=png&color=000000" class="w-6 h-6 group-hover:scale-110 transition-transform duration-300" alt="Tutorial">
+                <span class="text-[10px] font-semibold tracking-wide">Tutorial</span>
+            </button>
+            
+            <button onclick="showSec('addmoney')" class="nav-item flex flex-col items-center gap-1.5 text-gray-700 transition-all duration-300 hover:text-sky-500 group" id="nav-addmoney">
+                <img src="https://img.icons8.com/?size=100&id=95782&format=png&color=000000" class="w-6 h-6 group-hover:scale-110 transition-transform duration-300" alt="Add Money">
+                <span class="text-[10px] font-semibold tracking-wide">Add Money</span>
+            </button>
+            
+            <button onclick="showSec('history')" class="nav-item flex flex-col items-center gap-1.5 text-gray-700 transition-all duration-300 hover:text-sky-500 group" id="nav-history">
+                <img src="https://img.icons8.com/?size=100&id=41117&format=png&color=000000" class="w-6 h-6 group-hover:scale-110 transition-transform duration-300" alt="History">
+                <span class="text-[10px] font-semibold tracking-wide">History</span>
+            </button>
+            
+            <button onclick="showSec('account')" class="nav-item flex flex-col items-center gap-1.5 text-gray-700 transition-all duration-300 hover:text-sky-500 group" id="nav-account">
+                <img src="https://img.icons8.com/?size=100&id=7820&format=png&color=000000" class="w-6 h-6 group-hover:scale-110 transition-transform duration-300" alt="Account">
+                <span class="text-[10px] font-semibold tracking-wide">Account</span>
+            </button>
+        </div>
+    </nav>
+</div>
+
+<script>
+    // --- 1. MAIN FIREBASE CONFIGURATION (Users, Games, Orders) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyDaMREdsr0b2jCeItoRhC3bEomBu0Hdua4",
+      authDomain: "topup-7849b.firebaseapp.com",
+      projectId: "topup-7849b",
+      storageBucket: "topup-7849b.firebasestorage.app",
+      messagingSenderId: "350693551073",
+      appId: "1:350693551073:web:45d0550a7f880986ea00a0"
+    };
+
+    // --- 1.1 PAYMENT & AUTO-PAY FIREBASE CONFIG (Reader App, XNXANIKPAY, Auto Pay) ---
+    const paymentFirebaseConfig = {
+      apiKey: "AIzaSyBBYbM64P96Y0Z1jqTQMAR67D2_CrYgwsk",
+      authDomain: "tournament800-5941d.firebaseapp.com",
+      projectId: "tournament800-5941d",
+      storageBucket: "tournament800-5941d.firebasestorage.app",
+      messagingSenderId: "828735446188",
+      appId: "1:828735446188:web:c16a92e45df21e74ea5309",
+      measurementId: "G-YNKVTRTR94"
+    };
+
+    // Initialize Default App for Main DB & Auth
+    const defaultApp = firebase.initializeApp(firebaseConfig);
+    const db = defaultApp.firestore();
+    const auth = defaultApp.auth();
+
+    // Initialize Secondary Named App for Payment Gateway DB
+    const paymentApp = firebase.initializeApp(paymentFirebaseConfig, "paymentGatewayApp");
+    const paymentDb = paymentApp.firestore();
+
+    let currentUser = null;
+    let userBalance = 0;
+    let selectedProduct = null;
+    let howToVideoId = "dQw4w9WgXcQ"; // Default video ID
+
+    // --- Load How to Add Money Video from Admin Panel ---
+    function loadHowToVideo() {
+        db.collection("settings").doc("videos").get().then((doc) => {
+            if (doc.exists && doc.data().howToAddMoney) {
+                howToVideoId = doc.data().howToAddMoney;
+                updateVideoFrame();
+            }
+        }).catch((error) => {
+            console.log("Error loading video settings:", error);
+        });
+    }
+
+    // --- Update Video Frame ---
+    function updateVideoFrame() {
+        const videoFrame = document.getElementById("new-tutorial-video");
+        if (videoFrame) {
+            videoFrame.src = `https://www.youtube.com/embed/${howToVideoId}`;
+        }
+        const oldFrame = document.getElementById("how-to-add-money-video");
+        if(oldFrame) oldFrame.src = `https://www.youtube.com/embed/${howToVideoId}`;
+    }
+    let otpScriptUrl = "";
+    let otpSenderEmail = "";
+    let pendingSignupData = null;
+
+    let selectedGameId = null;
+    let selectedGameName = "";
+
+    // ==========================================
+    // 🔔 ONESIGNAL DYNAMIC ENGINE & ADMIN AUTO-PUSH
+    // ==========================================
+    let oneSignalAppId = "";
+    let oneSignalApiKey = "";
+
+    function initOneSignalEngine() {
+        db.collection('settings').doc('onesignal').onSnapshot(doc => {
+            if(doc.exists) {
+                const d = doc.data();
+                oneSignalAppId = d.app_id || "";
+                oneSignalApiKey = d.rest_api_key || "";
+
+                if(oneSignalAppId && window.OneSignal) {
+                    window.OneSignalDeferred = window.OneSignalDeferred || [];
+                    window.OneSignalDeferred.push(async function(OneSignal) {
+                        try {
+                            await OneSignal.init({
+                                appId: oneSignalAppId,
+                                allowLocalhostAsSecureOrigin: true,
+                                notifyButton: { enable: true }
+                            });
+                        } catch(e) {
+                            console.warn("OneSignal init error:", e);
+                        }
+                    });
+                }
+            }
+        });
+    }
+    initOneSignalEngine();
+
+    // অ্যাডমিনকে সরাসরি ফোনে পুশ নোটিফিকেশন পাঠানোর ফাংশন
+    async function notifyAdminNewOrder(title, message) {
+        if (!oneSignalAppId || !oneSignalApiKey) return;
+
+        const payload = {
+            app_id: oneSignalAppId,
+            included_segments: ["Total Subscriptions"], // অ্যাডমিন ও সকল সাবস্ক্রাইবার অথবা অ্যাডমিন ডিভাইসে পৌঁছে যাবে
+            headings: { en: title },
+            contents: { en: message }
+        };
+
+        try {
+            await fetch('https://api.onesignal.com/notifications', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Key ${oneSignalApiKey}`
+                },
+                body: JSON.stringify(payload)
+            }).catch(async () => {
+                // CORS Fallback
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.onesignal.com/notifications')}`;
+                await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Key ${oneSignalApiKey}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+            });
+        } catch(e) {
+            console.warn("OneSignal auto push error:", e);
+        }
+    }
+    let selectedGameType = 'uid';
+    let gamesData = {};
+    // ✅ Auto Payment Flag
+    let isAutoPayEnabled = false;
+    // ✅ New State for Payment Selection
+    let selectedPaymentMethod = 'wallet'; // 'wallet' or 'instant'
+    // ✅ State to track if we are in Direct Buy mode (Instant Pay)
+    let isDirectBuy = false;
+    let pendingDirectOrder = null;
+
+
+    function loadGlobalSettings() {
+        db.collection("settings").doc("general").onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                const logoUrl = data.logoUrl || "https://placehold.co/150x50?text=No+Logo";
+                const siteName = data.siteName || "Nenox Shop";
+                
+                isAutoPayEnabled = data.autoPayEnabled === true;
+                otpScriptUrl = data.otpScriptUrl || "";
+                otpSenderEmail = data.otpSenderEmail || "support@topup.shop";
+                
+                // document.getElementById('auth-logo-img').src = logoUrl; // Removed in new UI
+                document.getElementById('header-logo-img').src = logoUrl;
+                document.getElementById('about-logo-img').src = logoUrl;
+                document.getElementById('about-site-name').innerText = siteName;
+
+                // Sync logos for new payment UI
+                document.getElementById('step2-logo').src = logoUrl;
+                document.getElementById('step2-center-logo').src = logoUrl;
+                document.getElementById('pay-site-logo-small').src = logoUrl;
+
+                document.title = siteName;
+            }
+        });
+    }
+    loadGlobalSettings();
+    loadHowToVideo();
+
+    // --- 2. AUTH LOGIC ---
+    function toggleAuth(view) {
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('register-view').classList.add('hidden');
+        document.getElementById('otp-view').classList.add('hidden');
+        if(document.getElementById('forgot-view')) document.getElementById('forgot-view').classList.add('hidden');
+
+        if(view === 'login') {
+            document.getElementById('login-view').classList.remove('hidden');
+        } else if(view === 'register') {
+            document.getElementById('register-view').classList.remove('hidden');
+        } else if(view === 'otp') {
+            document.getElementById('otp-view').classList.remove('hidden');
+        } else if(view === 'forgot') {
+            document.getElementById('forgot-view').classList.remove('hidden');
+            const currentEmail = document.getElementById('login-email').value.trim();
+            if(currentEmail) document.getElementById('forgot-email').value = currentEmail;
+        }
+    }
+
+    // ============================================================
+    // 🔑 TOURNAMENT STYLE OTP FORGOT PASSWORD ENGINE
+    // ============================================================
+    let activeOtpSession = null;
+    let otpResendInterval = null;
+
+    async function handleSendPasswordReset() {
+        const targetEmail = (document.getElementById('forgot-email')?.value || document.getElementById('login-email')?.value || '').trim().toLowerCase();
+        
+        if(!targetEmail || !targetEmail.includes('@')) {
+            return Swal.fire('Error', 'দয়া করে একটি সঠিক জিমেইল অ্যাড্রেস লিখুন!', 'warning');
+        }
+
+        if(!otpScriptUrl) {
+            return Swal.fire('Notice', 'Admin প্যানেলে Apps Script URL সেট করা নেই!', 'warning');
+        }
+
+        Swal.fire({
+            title: 'ওটিপি কোড পাঠানো হচ্ছে...',
+            text: 'আপনার জিমেইলে ৬ ডিজিটের ওটিপি পাঠানো হচ্ছে, অপেক্ষা করুন...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        try {
+            // ১. ইউজার আছে কিনা ফায়ারস্টোর থেকে চেক
+            const userSnap = await db.collection('users').where('email', '==', targetEmail).limit(1).get();
+            if(userSnap.empty) {
+                Swal.close();
+                return Swal.fire('অ্যাকাউন্ট নেই', 'এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি!', 'error');
+            }
+
+            const matchedUserDoc = userSnap.docs[0];
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            const siteTitle = document.getElementById('about-site-name')?.innerText || "DRL TOPUP";
+
+            // ২. Apps Script দিয়ে ওটিপি প্রেরণ
+            const postData = {
+                to: [targetEmail],
+                subject: `Password Reset Verification Code - ${siteTitle}`,
+                html: `<div style='background-color: #0b0f19; padding: 35px 15px; font-family: sans-serif; text-align: center;'><div style='max-width: 440px; margin: 0 auto; background: #111827; border: 1px solid #1f2937; border-radius: 18px; padding: 30px 20px;'><h1 style='color: #ffffff; font-size: 20px; font-weight: 800; margin: 0;'>${siteTitle}</h1><p style='color: #9ca3af; font-size: 13px; margin: 4px 0 20px 0;'>Password Reset Verification</p><div style='border-top: 1px solid #1f2937; margin-bottom: 20px;'></div><h3 style='color: #f3f4f6; font-size: 16px; font-weight: 700; margin: 0 0 8px 0;'>Your Password Reset Code</h3><p style='color: #9ca3af; font-size: 13px; margin: 0 0 20px 0;'>Use this 6-digit code to reset your password:</p><div style='background: #064e3b; border: 2px dashed #10b981; border-radius: 12px; padding: 16px; margin: 0 auto 20px auto;'><span style='font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #34d399; font-family: monospace; display: block;'>${code}</span></div><p style='color: #6b7280; font-size: 11px; margin: 0;'>Sent to: ${targetEmail}</p></div></div>`,
+                senderName: siteTitle,
+                replyTo: otpSenderEmail || 'support@topup.shop'
+            };
+
+            await fetch(otpScriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(postData)
+            });
+
+            activeOtpSession = {
+                code: code,
+                targetEmail: targetEmail,
+                userId: matchedUserDoc.id,
+                purpose: 'forgot_password'
+            };
+
+            Swal.close();
+
+            // ৩. ওটিপি মোডাল ওপেন
+            document.getElementById('otp-modal-title').innerText = "পাসওয়ার্ড রিসেট ওটিপি";
+            document.getElementById('otp-modal-desc').innerHTML = `<b>${targetEmail}</b> ঠিকানায় ৬-সংখ্যার কোড পাঠানো হয়েছে।`;
+            const otpInp = document.getElementById('otp-input-code');
+            if(otpInp) {
+                otpInp.value = '';
+                setTimeout(() => otpInp.focus(), 300);
+            }
+            document.getElementById('otp-verification-modal').classList.remove('hidden');
+
+            startResendCooldownTimer(300);
+
+        } catch(err) {
+            Swal.close();
+            Swal.fire('Error', err.message || 'ওটিপি পাঠাতে সমস্যা হয়েছে', 'error');
+        }
+    }
+
+    function startResendCooldownTimer(seconds = 300) {
+        clearInterval(otpResendInterval);
+        const timerEl = document.getElementById('otp-resend-timer');
+        const resendBtn = document.getElementById('btn-otp-resend-action');
+        if(resendBtn) resendBtn.disabled = true;
+
+        let left = seconds;
+        otpResendInterval = setInterval(() => {
+            const m = Math.floor(left / 60);
+            const s = left % 60;
+            if(timerEl) timerEl.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            left--;
+            if(left < 0) {
+                clearInterval(otpResendInterval);
+                if(timerEl) timerEl.innerText = "প্রস্তুত";
+                if(resendBtn) resendBtn.disabled = false;
+            }
+        }, 1000);
+    }
+
+    function closeOtpVerificationModal() {
+        document.getElementById('otp-verification-modal').classList.add('hidden');
+        clearInterval(otpResendInterval);
+        activeOtpSession = null;
+    }
+
+    async function resendOtpCode() {
+        if(!activeOtpSession) return;
+        const targetEmail = activeOtpSession.targetEmail;
+        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+        activeOtpSession.code = newCode;
+
+        const siteTitle = document.getElementById('about-site-name')?.innerText || "DRL TOPUP";
+        const postData = {
+            to: [targetEmail],
+            subject: `New Verification Code - ${siteTitle}`,
+            html: `<p>Your new verification code is: <b>${newCode}</b></p>`,
+            senderName: siteTitle,
+            replyTo: otpSenderEmail || 'support@topup.shop'
+        };
+
+        fetch(otpScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(postData)
+        });
+
+        Swal.fire({ icon: 'success', title: 'নতুন ওটিপি পাঠানো হয়েছে!', timer: 1500, showConfirmButton: false });
+        startResendCooldownTimer(60);
+    }
+
+    async function submitOtpVerification() {
+        const inputCode = (document.getElementById('otp-input-code')?.value || '').trim();
+
+        if(!inputCode || inputCode.length !== 6) {
+            return Swal.fire('Error', 'সঠিক ৬-সংখ্যার ওটিপি কোড লিখুন!', 'warning');
+        }
+
+        if(!activeOtpSession || inputCode !== activeOtpSession.code) {
+            return Swal.fire('ভুল ওটিপি!', 'আপনার দেওয়া কোডটি মেলেনি। সঠিক কোড দিন!', 'error');
+        }
+
+        closeOtpVerificationModal();
+
+        // ওটিপি ভেরিফাইড হলে সরাসরি নতুন পাসওয়ার্ড প্রম্পট
+        const { value: newPassword } = await Swal.fire({
+            title: 'নতুন পাসওয়ার্ড দিন',
+            input: 'password',
+            inputPlaceholder: 'কমপক্ষে ৬ অক্ষরের নতুন পাসওয়ার্ড...',
+            showCancelButton: true,
+            confirmButtonText: 'পাসওয়ার্ড সেট করুন ➔',
+            confirmButtonColor: '#0284c7',
+            inputValidator: (val) => {
+                if (!val || val.length < 6) return 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে!';
+            }
+        });
+
+        if(newPassword) {
+            Swal.fire({
+                title: 'পাসওয়ার্ড আপডেট হচ্ছে...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                // ১. ফায়ারস্টোরে পাসওয়ার্ড সেভ
+                await db.collection('users').doc(activeOtpSession.userId).update({
+                    password: newPassword
+                });
+
+                // ২. ফায়ারবেস Auth-এর অফিশিয়াল রিসেট সিঙ্ক
+                auth.sendPasswordResetEmail(activeOtpSession.targetEmail).catch(()=>{});
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'পাসওয়ার্ড রিসেট সফল! 🎉',
+                    text: 'আপনার পাসওয়ার্ড আপডেট হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।'
+                }).then(() => {
+                    document.getElementById('login-email').value = activeOtpSession.targetEmail;
+                    document.getElementById('login-pass').value = newPassword;
+                    toggleAuth('login');
+                });
+
+            } catch(e) {
+                Swal.fire('Error', e.message, 'error');
+            }
+        }
+    }
+
+    async function handleRegister() {
+        const name = document.getElementById('reg-name').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const pass = document.getElementById('reg-pass').value;
+        const phoneEl = document.getElementById('reg-phone');
+        const phone = phoneEl ? phoneEl.value.trim() : '';
+
+        if(!name || !email || !pass) return Swal.fire('Error', 'Please fill all fields', 'error');
+        if(pass.length < 6) return Swal.fire('Error', 'Password must be at least 6 characters', 'warning');
+
+        if(!otpScriptUrl) {
+            return Swal.fire('Setup Required', 'OTP script URL is not configured in Admin Settings.', 'warning');
+        }
+
+        Swal.fire({
+            title: 'Sending OTP...',
+            text: 'Please wait while we generate and send your verification code.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        try {
+            // Check if user already exists
+            const existingUsers = await db.collection('users').where('email', '==', email).get();
+            if(!existingUsers.empty) {
+                Swal.close();
+                return Swal.fire('Error', 'An account already exists with this email.', 'error');
+            }
+
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const siteTitle = document.getElementById('about-site-name') ? document.getElementById('about-site-name').innerText : "DRL TOPUP";
+
+            const postData = {
+                to: [email],
+                subject: `Your OTP Verification Code - ${siteTitle}`,
+                html: `<div style='background-color: #0b0f19; padding: 35px 15px; font-family: sans-serif; text-align: center;'><div style='max-width: 440px; margin: 0 auto; background: #111827; border: 1px solid #1f2937; border-radius: 18px; padding: 30px 20px;'><h1 style='color: #ffffff; font-size: 20px; font-weight: 800; margin: 0;'>${siteTitle}</h1><p style='color: #9ca3af; font-size: 13px; margin: 4px 0 20px 0;'>Fast & Secure Game Top-Up</p><div style='border-top: 1px solid #1f2937; margin-bottom: 20px;'></div><h3 style='color: #f3f4f6; font-size: 17px; font-weight: 700; margin: 0 0 8px 0;'>Account Verification</h3><p style='color: #9ca3af; font-size: 13px; margin: 0 0 20px 0;'>Use this 6-digit code to complete registration. Valid for <b>10 minutes</b>.</p><div style='background: #064e3b; border: 2px dashed #10b981; border-radius: 12px; padding: 16px; margin: 0 auto 20px auto;'><span style='font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #34d399; font-family: monospace; display: block;'>${otp}</span></div><p style='color: #6b7280; font-size: 11px; margin: 0 0 18px 0;'>If you did not request this, please ignore this email.</p><div style='border-top: 1px solid #1f2937; margin-bottom: 15px;'></div><p style='color: #4b5563; font-size: 11px; margin: 0;'>Need help? Contact <a href='mailto:${otpSenderEmail}' style='color: #10b981; text-decoration: none;'>${otpSenderEmail}</a></p></div></div>`,
+                senderName: siteTitle,
+                replyTo: otpSenderEmail
+            };
+
+            await fetch(otpScriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(postData)
+            });
+
+            pendingSignupData = {
+                name: name,
+                email: email,
+                phone: phone,
+                password: pass,
+                otp: otp
+            };
+
+            Swal.close();
+            document.getElementById('otp-target-email').innerText = email;
+            document.getElementById('reg-otp').value = '';
+            toggleAuth('otp');
+
+            Swal.fire({
+                icon: 'success',
+                title: 'OTP Sent!',
+                text: `A 6-digit code has been sent to ${email}`,
+                timer: 2000,
+                showConfirmButton: false
+            });
+
+        } catch (err) {
+            Swal.close();
+            Swal.fire('Error', err.message || 'Could not send OTP', 'error');
+        }
+    }
+
+    async function handleVerifySignupOtp() {
+        const enteredOtp = document.getElementById('reg-otp').value.trim();
+        if(!enteredOtp) return Swal.fire('Error', 'Please enter the 6-digit code', 'warning');
+
+        if(!pendingSignupData || pendingSignupData.otp !== enteredOtp) {
+            return Swal.fire('Invalid OTP', 'The code you entered is incorrect!', 'error');
+        }
+
+        Swal.fire({
+            title: 'Creating Account...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        try {
+            const cred = await auth.createUserWithEmailAndPassword(pendingSignupData.email, pendingSignupData.password);
+            await db.collection('users').doc(cred.user.uid).set({
+                name: pendingSignupData.name,
+                email: pendingSignupData.email,
+                phone: pendingSignupData.phone,
+                balance: 0,
+                createdAt: new Date()
+            });
+
+            pendingSignupData = null;
+            document.getElementById('reg-otp').value = '';
+            document.getElementById('reg-name').value = '';
+            document.getElementById('reg-email').value = '';
+            document.getElementById('reg-pass').value = '';
+            if(document.getElementById('reg-phone')) document.getElementById('reg-phone').value = '';
+
+            Swal.fire('Success', 'Account Verified & Created Successfully!', 'success');
+            showSec('home');
+        } catch(err) {
+            Swal.fire('Registration Error', err.message, 'error');
+        }
+    }
+
+    function cancelSignupOtp() {
+        pendingSignupData = null;
+        document.getElementById('reg-otp').value = '';
+        toggleAuth('register');
+    }
+
+    function handleLogin() {
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-pass').value;
+        if(!email || !pass) return;
+        Swal.showLoading();
+        auth.signInWithEmailAndPassword(email, pass)
+        .then(() => {
+            showSec('home');
+            Swal.close();
+        })
+        .catch((err) => Swal.fire('Login Failed', err.message, 'error'));
+    }
+    
+    // =========================================================================
+    // 🔥 REAL GOOGLE SIGN-UP & LOGIN (POPUP & AUTO ACCOUNT CREATION)
+    // =========================================================================
+    async function handleGoogleLogin() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        Swal.fire({
+            title: 'Google-এ সংযোগ হচ্ছে...',
+            text: 'দয়া করে অপেক্ষা করুন...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        try {
+            const result = await auth.signInWithPopup(provider);
+            const user = result.user;
+
+            const userRef = db.collection('users').doc(user.uid);
+            const userSnap = await userRef.get();
+
+            // ইউজার ব্যান থাকলে ব্লক করা হবে
+            if (userSnap.exists && userSnap.data()?.isBanned === true) {
+                await auth.signOut();
+                Swal.fire('অ্যাকাউন্ট ব্যান', 'আপনার অ্যাকাউন্টটি ব্যান করা হয়েছে। অ্যাডমিনের সাথে যোগাযোগ করুন।', 'error');
+                return;
+            }
+
+            // নতুন ইউজার হলে ডাটাবেসে একাউন্ট তৈরি (Sign Up)
+            if (!userSnap.exists) {
+                await userRef.set({
+                    name: user.displayName || (user.email ? user.email.split('@')[0] : 'User'),
+                    email: user.email ? user.email.toLowerCase() : '',
+                    phone: user.phoneNumber || '',
+                    balance: 0,
+                    photoURL: user.photoURL || '',
+                    createdAt: new Date()
+                });
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'গুগল দিয়ে সফলভাবে সম্পন্ন হয়েছে! 🎉',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            showSec('home');
+
+        } catch (error) {
+            Swal.close();
+            console.error("Google Auth Error:", error);
+
+            if (error.code === 'auth/popup-closed-by-user') {
+                return; // ইউজার উইন্ডো কেটে দিলে কোনো এরর দেখানোর প্রয়োজন নেই
+            } else if (error.code === 'auth/unauthorized-domain') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Domain Not Authorized!',
+                    html: `Firebase Console ➔ Authentication ➔ Settings ➔ Authorized Domains-এ গিয়ে আপনার বর্তমান সাইটের লিংক বা ডোমেইনটি Add করতে হবে।`
+                });
+            } else {
+                Swal.fire('Error', error.message || 'গুগল সাইন-আপ করতে সমস্যা হয়েছে!', 'error');
+            }
+        }
+    }
+
+    function showAuthPage() {
+        showSec('auth');
+    }
+
+    function handleLogout() { 
+        auth.signOut().then(() => {
+             showSec('home');
+        }); 
+    }
+
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            // Check if currently on auth page, if so go home
+            if(!document.getElementById('auth-sec').classList.contains('hidden')){
+                showSec('home');
+            }
+            
+            document.getElementById('header-login-container').classList.add('hidden');
+            document.getElementById('header-balance-container').classList.remove('hidden');
+            
+            loadUserData(user.uid);
+            calculateUserStats(user.uid);
+        } else {
+            currentUser = null;
+            document.getElementById('header-login-container').classList.remove('hidden');
+            document.getElementById('header-balance-container').classList.add('hidden');
+            
+            // Reset profile data
+            const emptyName = "-";
+            if(document.getElementById('acc-profile-name')) document.getElementById('acc-profile-name').innerText = emptyName;
+            if(document.getElementById('acc-email')) document.getElementById('acc-email').innerText = emptyName;
+        }
+    });
+    
+    // Always load content
+    loadAppContent();
+
+    function loadUserData(uid) {
+        db.collection('users').doc(uid).onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                userBalance = data.balance || 0;
+                const userName = data.name || "User";
+                const userEmail = data.email || "";
+
+                // Update Header
+                document.getElementById('header-balance').innerText = userBalance;
+                document.getElementById('topup-balance-display').innerText = userBalance.toFixed(2);
+
+                // Update New Account Section
+                const accNameEl = document.getElementById('acc-profile-name');
+                const accEmailEl = document.getElementById('acc-email');
+                const accPhoneEl = document.getElementById('acc-phone');
+                const accBalEl = document.getElementById('acc-profile-balance');
+                const accBalCardEl = document.getElementById('acc-balance-card');
+                const accPinEl = document.getElementById('acc-support-pin');
+                
+                // Profile Image / Initial Logic
+                const imgContainer = document.getElementById('acc-profile-img');
+                const initialContainer = document.getElementById('profile-initial');
+                
+                if(data.photoURL) {
+                    imgContainer.src = data.photoURL;
+                    imgContainer.classList.remove('hidden');
+                    initialContainer.classList.add('hidden');
+                } else {
+                    imgContainer.classList.add('hidden');
+                    initialContainer.classList.remove('hidden');
+                    initialContainer.innerText = userName.charAt(0).toUpperCase();
+                }
+
+                if(accNameEl) accNameEl.innerText = userName;
+                if(accEmailEl) accEmailEl.innerText = userEmail;
+                if(accPhoneEl) accPhoneEl.innerText = data.phone || "Not Available";
+                if(accBalEl) accBalEl.innerText = userBalance;
+                if(accBalCardEl) accBalCardEl.innerText = userBalance.toFixed(2);
+                
+                // Generate Support Pin from UID (Real Info)
+                if(accPinEl) accPinEl.innerText = uid.substring(0, 6).toUpperCase();
+            }
+        });
+    }
+
+    function calculateUserStats(uid) {
+        const totalOrdersEl = document.getElementById('acc-total-orders');
+        const totalSpentEl = document.getElementById('acc-total-spent');
+        const weeklySpentEl = document.getElementById('acc-weekly-spent');
+
+        if(totalOrdersEl) totalOrdersEl.innerText = "0";
+        if(totalSpentEl) totalSpentEl.innerText = "0";
+        if(weeklySpentEl) weeklySpentEl.innerText = "0";
+        
+        db.collection('orders').where('userId', '==', uid).get().then((snapshot) => {
+            let totalOrders = 0;
+            let totalSpent = 0;
+            let weeklySpent = 0;
+
+            const now = new Date();
+            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                totalOrders++;
+                const status = data.status ? data.status.toLowerCase() : '';
+                
+                if (status === 'success' || status === 'complete' || status === 'completed' || status === 'pending') {
+                    const price = parseInt(data.price || 0);
+                    totalSpent += price;
+
+                    // Calculate Weekly Spent (Real Info)
+                    if (data.date) {
+                        const orderDate = data.date.toDate ? data.date.toDate() : new Date(data.date);
+                        if (orderDate >= oneWeekAgo) {
+                            weeklySpent += price;
+                        }
+                    }
+                }
+            });
+
+            if(totalOrdersEl) totalOrdersEl.innerText = totalOrders;
+            if(totalSpentEl) totalSpentEl.innerText = totalSpent;
+            if(weeklySpentEl) weeklySpentEl.innerText = weeklySpent;
+
+        }).catch(err => {
+            console.error("Stats Error:", err);
+        });
+    }
+
+    // --- 3. APP CONTENT & FEATURES ---
+
+    function loadAppContent() {
+        db.collection("settings").doc("general").onSnapshot((doc) => {
+            if(doc.exists) {
+                const data = doc.data();
+                if(data.notice) document.getElementById('notice-text').innerText = data.notice;
+                const waNum = data.whatsapp ? String(data.whatsapp).replace(/\s/g, '') : "0";
+                const tgLink = data.telegram || "#";
+                const appLink = data.appLink || "#";
+                const fbLink = data.facebook || "#";
+                const ytLink = data.youtube || "#";
+                const waLink = `https://wa.me/${waNum}`;
+
+                const promoContainer = document.getElementById('promo-banner-container');
+                const promoImg = document.getElementById('promo-banner-img');
+                const promoLink = document.getElementById('promo-banner-link');
+                if(data.promoImageUrl && promoContainer && promoImg && promoLink) {
+                    promoImg.src = data.promoImageUrl;
+                    promoLink.href = data.promoImageLink || "#";
+                    promoContainer.classList.remove('hidden');
+                } else if(promoContainer) {
+                    promoContainer.classList.add('hidden');
+                }
+
+                document.getElementById('home-whatsapp').href = waLink;
+                document.getElementById('home-telegram').href = tgLink;
+                
+                const homeAppBtn = document.getElementById('home-app-dl');
+                homeAppBtn.href = appLink;
+                homeAppBtn.onclick = (e) => { if(appLink === "#") { e.preventDefault(); Swal.fire('Notice', 'App coming soon!', 'info'); } };
+
+                document.getElementById('link-whatsapp').href = waLink;
+                document.getElementById('link-telegram').href = tgLink;
+
+                document.getElementById('about-facebook').href = fbLink;
+                document.getElementById('about-youtube').href = ytLink;
+                document.getElementById('about-telegram').href = tgLink;
+                document.getElementById('about-whatsapp').href = waLink;
+                document.getElementById('contact-whatsapp').href = waLink;
+                document.getElementById('contact-telegram').href = tgLink;
+                document.getElementById('contact-facebook').href = fbLink;
+            }
+        });
+
+        loadGamesAndCategories();
+        loadTutorials();
+        loadBanners();
+        loadRecentOrdersGlobal(); 
+    }
+
+    async function loadGamesAndCategories() {
+        const listContainer = document.getElementById('services-list');
+        listContainer.innerHTML = `<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-sky-500"></i> Loading Games...</div>`;
+        gamesData = {};
+
+        try {
+            const [categoriesSnap, servicesSnap] = await Promise.all([
+                db.collection("categories").orderBy("slot").get(),
+                db.collection("services").get()
+            ]);
+
+            if (servicesSnap.empty) {
+                listContainer.innerHTML = `<div class="col-span-3 text-center text-gray-700">No Games Found</div>`;
+                return;
+            }
+
+            const categoriesMap = new Map();
+            categoriesSnap.forEach(doc => {
+                categoriesMap.set(doc.id, { ...doc.data(), games: [] });
+            });
+            
+            let uncategorizedGames = [];
+
+            servicesSnap.forEach(doc => {
+                const game = { id: doc.id, ...doc.data() };
+                gamesData[doc.id] = game;
+                
+                if (game.categoryId && categoriesMap.has(game.categoryId)) {
+                    categoriesMap.get(game.categoryId).games.push(game);
+                } else {
+                    uncategorizedGames.push(game);
+                }
+            });
+
+            listContainer.innerHTML = "";
+
+            categoriesMap.forEach((category) => {
+                if (category.games.length > 0) {
+                    let gamesHTML = '';
+                    category.games.forEach(item => {
+                        gamesHTML += `
+                         <div onclick="openTopUpPage('${item.id}', '${item.name}', '${item.image}')" 
+                              class="bg-white rounded-lg shadow-[0_2px_0px_0px_rgba(3,169,244,0.5)] overflow-hidden cursor-pointer transform hover:-translate-y-1 transition-all duration-300 border border-gray-100 group">
+                            <div class="w-full aspect-square bg-gray-50 overflow-hidden relative">
+                                <img src="${item.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://placehold.co/200'">
+                            </div>
+                            <div class="p-2 text-center bg-white border-t border-gray-50">
+                                <p class="text-xs font-bold text-gray-700 line-clamp-2 leading-tight lang-auto">${item.name}</p>
+                            </div>
+                        </div>`;
+                    });
+
+                    listContainer.innerHTML += `
+                    <div>
+                        <h3 class="font-bold text-gray-700 text-xl mb-3 text-center lang-auto" style="letter-spacing: 0.5px">${category.name}</h3>
+                        <div class="grid grid-cols-3 gap-6 px-4">
+                            ${gamesHTML}
+                        </div>
+                    </div>`;
+                }
+            });
+            
+             if(uncategorizedGames.length > 0) {
+                let gamesHTML = '';
+                uncategorizedGames.forEach(item => {
+                    gamesHTML += `
+                     <div onclick="openTopUpPage('${item.id}', '${item.name}', '${item.image}')" 
+                          class="bg-white rounded-lg shadow-[0_2px_0px_0px_rgba(3,169,244,0.5)] overflow-hidden cursor-pointer transform hover:-translate-y-1 transition-all duration-300 border border-gray-100 group">
+                        <div class="w-full aspect-square bg-gray-50 overflow-hidden relative">
+                            <img src="${item.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://placehold.co/200'">
+                        </div>
+                        <div class="p-1 text-center bg-white border-t border-gray-50">
+                            <p class="text-[8px] font-bold text-gray-700 truncate">${item.name}</p>
+                        </div>
+                    </div>`;
+                });
+                listContainer.innerHTML += `
+                <div>
+                    <h3 class="font-bold text-gray-500 text-lg border-l-4 border-gray-400 pl-2 mb-3">Others</h3>
+                    <div class="grid grid-cols-3 gap-6 px-4">
+                        ${gamesHTML}
+                    </div>
+                </div>`;
+            }
+
+        } catch (error) {
+            console.error("Failed to load games and categories:", error);
+            listContainer.innerHTML = `<div class="text-center text-red-500">Failed to load games. Please try again later.</div>`;
+        }
+    }
+
+    function loadTutorials() {
+        db.collection("tutorials").onSnapshot((snapshot) => {
+            const container = document.getElementById('tutorial-list-container');
+            container.innerHTML = "";
+            
+            if (snapshot.empty) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-video text-gray-700 text-2xl"></i>
+                        </div>
+                        <p class="text-gray-500 text-sm">No tutorials available yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                container.innerHTML += `
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 group">
+                        <div class="relative" onclick="window.open('${data.link}', '_blank')">
+                            <div class="aspect-video bg-gray-100 overflow-hidden">
+                                <img src="${data.thumbnail}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                            </div>
+                            <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <div class="bg-white/90 backdrop-blur-sm rounded-full w-14 h-14 flex items-center justify-center shadow-lg">
+                                    <i class="fas fa-play text-sky-600 text-xl ml-1"></i>
+                                </div>
+                            </div>
+                            <div class="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
+                                <i class="fas fa-play mr-1"></i> Tutorial
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-semibold text-gray-800 text-sm leading-tight line-clamp-2">${data.title}</h3>
+                            <div class="mt-3 flex items-center justify-between">
+                                <span class="text-xs text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i> Watch now
+                                </span>
+                                <button onclick="window.open('${data.link}', '_blank')" class="bg-sky-50 text-sky-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-sky-100 transition-colors">
+                                    <i class="fas fa-external-link-alt mr-1"></i> Watch
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+    }
+
+    // --- 4. TOPUP SYSTEM ---
+    function openTopUpPage(gameId, gameName, gameImg) {
+        // ALLOW GUESTS TO VIEW PAGE - Removed login check here
+        
+        selectedGameId = gameId;
+        selectedGameName = gameName;
+        selectedProduct = null;
+        selectedGameType = gamesData[gameId].type || 'uid'; 
+        
+        // Reset Logic
+        selectPaymentOption('wallet'); // Default to wallet
+        isDirectBuy = false;
+
+        document.getElementById('total-price').innerText = "0";
+        document.getElementById('game-player-id').value = "";
+        document.getElementById('topup-game-title').innerText = gameName;
+        document.getElementById('topup-sub-title').innerText = gameName + " ";
+        document.getElementById('topup-game-img').src = gameImg;
+
+        const playerSection = document.getElementById('player-id-section');
+        playerSection.classList.toggle('hidden', selectedGameType === 'code');
+        
+        if (selectedGameType === 'code') {
+            document.getElementById('topup-sub-title').innerText += "(Instant Voucher)";
+        } else if (selectedGameType === 'auto-topup') {
+            document.getElementById('topup-sub-title').innerText += "(Auto Delivery)";
+        } else {
+            document.getElementById('topup-sub-title').innerText += "(Player ID)";
+        }
+
+        const rulesBox = document.getElementById('game-rules-box');
+        const rulesText = document.getElementById('game-rules-text');
+        if(gamesData[gameId] && gamesData[gameId].rules) {
+            // Split rules by newline or period for bullet points if needed, or just set innerText
+            const rules = gamesData[gameId].rules.split('\n');
+            let rulesHtml = "";
+            rules.forEach(rule => {
+                if(rule.trim()) rulesHtml += `<p class="flex items-start gap-1"><i class="far fa-dot-circle mt-1 text-[8px] text-gray-400"></i> ${rule}</p>`;
+            });
+            rulesText.innerHTML = rulesHtml || gamesData[gameId].rules;
+            rulesBox.classList.remove('hidden');
+        } else {
+            rulesBox.classList.add('hidden');
+        }
+        
+        const uidCheckBtn = document.getElementById('uidCheckBtn');
+        uidCheckBtn.innerHTML = "Click to check player name";
+        uidCheckBtn.classList.remove("bg-black");
+        uidCheckBtn.classList.add("bg-gradient-to-r", "from-red-700", "to-orange-500");
+
+        showSec('topup');
+        
+        const grid = document.getElementById('products-grid');
+        const loader = document.getElementById('product-loader');
+        grid.innerHTML = "";
+        loader.classList.remove('hidden');
+
+        db.collection('services').doc(gameId).collection('products').orderBy('price', 'asc').get()
+            .then((snapshot) => {
+                loader.classList.add('hidden');
+                if(snapshot.empty) {
+                    grid.innerHTML = `<div class="col-span-2 text-center text-gray-700 py-4">No packages available</div>`;
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const prod = doc.data();
+                    const card = document.createElement('div');
+                    card.className = "product-card";
+                    card.onclick = () => selectProduct(card, prod.name, prod.price, doc.id);
+                    
+                    let stockBadge = "";
+                    if(selectedGameType === 'code' || selectedGameType === 'auto-topup') {
+                         const count = prod.stockCount || 0;
+                         stockBadge = (count > 0) ? `` : `<span class="text-[9px] text-red-500 bg-red-100 px-1 rounded ml-1">Stock Out</span>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="flex items-center">
+                            <div class="product-bullet"></div>
+                            <div>
+                                <span class="text-xs font-bold text-gray-600 block">${prod.name} ${stockBadge}</span>
+                            </div>
+                        </div>
+                        <span class="text-sky-600 font-bold text-sm">৳${prod.price}</span>`;
+                    grid.appendChild(card);
+                });
+            });
+    }
+
+    function selectProduct(element, name, price, id) {
+        document.querySelectorAll('.product-card').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        selectedProduct = { id: id, name: name, price: parseInt(price) };
+        document.getElementById('total-price').innerText = selectedProduct.price;
+    }
+
+    function selectPaymentOption(option) {
+        selectedPaymentMethod = option;
+        document.querySelectorAll('.pay-option-card').forEach(el => el.classList.remove('selected'));
+        document.getElementById('opt-' + option).classList.add('selected');
+    }
+
+    async function processOrder() {
+        // CHECK LOGIN HERE BEFORE PROCESSING
+        if (!currentUser) {
+            Swal.fire({
+                title: 'Login Required',
+                text: 'Please login to purchase this item',
+                icon: 'info',
+                confirmButtonText: 'Login',
+                showCancelButton: true,
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    showSec('auth');
+                }
+            });
+            return;
+        }
+
+        let playerId = "N/A";
+        
+        if(selectedGameType === 'uid' || selectedGameType === 'auto-topup') {
+            playerId = document.getElementById('game-player-id').value.trim();
+            if(!playerId) return Swal.fire({ icon: 'warning', title: 'Missing ID', text: 'Please enter Player ID!' });
+        } else {
+            playerId = "Voucher Request";
+        }
+        
+        if(!selectedProduct) return Swal.fire({ icon: 'warning', title: 'Select Pack', text: 'Please select a recharge package!' });
+        
+        // --- LOGIC BRANCHING START ---
+        
+        if (selectedPaymentMethod === 'instant') {
+            // INSTANT PAY FLOW
+            isDirectBuy = true;
+            currentDepositAmount = selectedProduct.price;
+            pendingDirectOrder = {
+                playerId: playerId,
+                product: selectedProduct,
+                gameId: selectedGameId,
+                gameName: selectedGameName,
+                gameType: selectedGameType
+            };
+            
+            // Go directly to Method Step of Add Money (reusing UI)
+            document.getElementById('topup-sec').classList.add('hidden');
+            
+            // FIX: Must show the parent section first!
+            document.getElementById('addmoney-sec').classList.remove('hidden');
+            
+            // Then manage the steps inside
+            document.getElementById('am-step-1').classList.add('hidden');
+            document.getElementById('am-step-2').classList.remove('hidden');
+            document.getElementById('am-step-3').classList.add('hidden');
+            
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            return;
+        }
+
+        // --- WALLET PAY FLOW (Existing Logic) ---
+        if(userBalance < selectedProduct.price) return Swal.fire({ icon: 'error', title: 'Low Balance', text: 'Please Add Money first.' });
+
+        const result = await Swal.fire({
+            title: 'Confirm Purchase?',
+            html: `Item: ${selectedProduct.name}<br>Price: ৳${selectedProduct.price}`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#03a9f4',
+            confirmButtonText: 'Yes, Buy Now'
+        });
+
+        if (result.isConfirmed) {
+            Swal.showLoading();
+            if (selectedGameType === 'code') {
+                processVoucherOrder(playerId);
+            } else if (selectedGameType === 'auto-topup') {
+                processAutoTopUpOrder(playerId);
+            } else {
+                processUidOrder(playerId);
+            }
+        }
+    }
+    
+    // Updated to accept playerId param for code reuse
+    async function processVoucherOrder(playerId) {
+        const stockRef = db.collection('services').doc(selectedGameId).collection('products').doc(selectedProduct.id).collection('stock');
+        const availableStockSnap = await stockRef.where('status', '==', 'available').limit(1).get();
+
+        if (availableStockSnap.empty) {
+            return Swal.fire('Out of Stock', 'Sorry, this product is currently unavailable.', 'error');
+        }
+
+        const stockDoc = availableStockSnap.docs[0];
+        const voucherCode = stockDoc.data().code;
+        const userRef = db.collection('users').doc(currentUser.uid);
+        
+        try {
+            await db.runTransaction(async (t) => {
+                const uDoc = await t.get(userRef);
+                const newBal = uDoc.data().balance - selectedProduct.price;
+                if(newBal < 0) throw new Error("Insufficient Balance");
+
+                t.update(userRef, { balance: newBal });
+                t.delete(stockDoc.ref); 
+                t.update(db.collection('services').doc(selectedGameId).collection('products').doc(selectedProduct.id), {
+                    stockCount: firebase.firestore.FieldValue.increment(-1)
+                });
+            });
+
+            await db.collection('orders').add({
+                userId: currentUser.uid, userName: currentUser.email, gameName: selectedGameName, gameId: selectedGameId,
+                productName: selectedProduct.name, price: selectedProduct.price, playerId: playerId, type: 'code',
+                status: 'success', redeemCode: voucherCode, date: new Date()
+            });
+
+            notifyAdminNewOrder("🎟️ ভাউচার কোড বিক্রয়!", `${currentUser.email || 'ইউজার'} ${selectedGameName} এর ৳${selectedProduct.price} টাকার ভাউচার কোড ক্রয় করেছে।`);
+            Swal.fire('Success', 'Voucher Purchased! Check History for Code.', 'success');
+            showSec('home');
+
+        } catch (e) {
+            Swal.fire('Error', 'Transaction Failed: ' + e.message, 'error');
+        }
+    }
+
+    function processUidOrder(playerId) {
+        const newBalance = userBalance - selectedProduct.price;
+        db.collection('users').doc(currentUser.uid).update({ balance: newBalance })
+        .then(() => {
+            return db.collection('orders').add({
+                userId: currentUser.uid, userName: currentUser.email, gameName: selectedGameName, gameId: selectedGameId,
+                playerId: playerId, productName: selectedProduct.name, price: selectedProduct.price, type: 'uid',
+                status: 'pending', date: new Date()
+            });
+        })
+        .then(() => {
+            notifyAdminNewOrder("🚨 নতুন UID টপ-আপ অর্ডার!", `${currentUser.email || 'ইউজার'} একটি ৳${selectedProduct.price} টাকার অর্ডার দিয়েছে (${selectedGameName} - ${selectedProduct.name})।`);
+            Swal.fire('Success', 'Order Placed Successfully!', 'success');
+            showSec('home');
+        })
+        .catch(err => Swal.fire('Error', err.message, 'error'));
+    }
+
+    async function processAutoTopUpOrder(playerId) {
+        const settingsDoc = await db.collection("settings").doc("general").get();
+        if (!settingsDoc.exists) {
+            return Swal.fire('Configuration Error', 'Admin settings not found. Please contact support.', 'error');
+        }
+        const settings = settingsDoc.data();
+        const apiKey = settings.autoTopUpApiKey;
+        const apiUrl = settings.autoTopUpApiUrl;
+        const callbackUrl = settings.autoTopUpCallbackUrl;
+
+        if (!apiKey || !apiUrl || !callbackUrl) {
+            return Swal.fire('Configuration Error', 'Auto TopUp is not configured correctly. Please contact support.', 'error');
+        }
+
+        const stockRef = db.collection('services').doc(selectedGameId).collection('products').doc(selectedProduct.id).collection('stock');
+        const availableStockSnap = await stockRef.where('status', '==', 'available').limit(1).get();
+
+        if (availableStockSnap.empty) {
+            return Swal.fire('Out of Stock', 'Sorry, this product is currently unavailable.', 'error');
+        }
+        const stockDoc = availableStockSnap.docs[0];
+        const uniPinCode = stockDoc.data().code;
+
+        const userRef = db.collection('users').doc(currentUser.uid);
+        const orderRef = db.collection('orders').doc(); 
+
+        try {
+            await db.runTransaction(async (t) => {
+                const userDoc = await t.get(userRef);
+                const newBalance = userDoc.data().balance - selectedProduct.price;
+                if (newBalance < 0) throw new Error("Insufficient Balance");
+
+                t.update(userRef, { balance: newBalance });
+                t.delete(stockDoc.ref);
+                t.update(db.collection('services').doc(selectedGameId).collection('products').doc(selectedProduct.id), {
+                    stockCount: firebase.firestore.FieldValue.increment(-1)
+                });
+                t.set(orderRef, {
+                    userId: currentUser.uid, userName: currentUser.email, gameName: selectedGameName, gameId: selectedGameId,
+                    playerId: playerId, productName: selectedProduct.name, price: selectedProduct.price, type: 'auto-topup',
+                    status: 'pending', date: new Date(), usedUniPinCode: uniPinCode 
+                });
+            });
+
+            const payload = {
+                api: apiKey,
+                playerid: playerId,
+                code: uniPinCode,
+                orderid: orderRef.id, 
+                url: callbackUrl
+            };
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error("Auto TopUp API Error:", err)); 
+
+            Swal.fire({
+                icon: 'info',
+                title: 'Processing Order',
+                text: 'Your top-up is being processed automatically. Please wait.',
+                timer: 7000,
+                timerProgressBar: true,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            setTimeout(() => {
+                orderRef.update({ status: 'success' }).then(() => {
+                    notifyAdminNewOrder("⚡ অটো টপ-আপ অর্ডার সফল!", `ইউজার: ${currentUser.email} | গেম: ${selectedGameName} (${selectedProduct.name} - ৳${selectedProduct.price})`);
+                    Swal.fire('Success!', 'Your Top-Up has been completed successfully.', 'success');
+                    showSec('home');
+                });
+            }, 7000);
+
+        } catch (e) {
+            Swal.fire('Transaction Failed', e.message, 'error');
+        }
+    }
+
+    function uidCheck() {
+        const uid = document.getElementById("game-player-id").value;
+        const box = document.getElementById("uidCheckBtn");
+
+        if (!uid) {
+            box.innerHTML = "Please enter a UID!";
+            box.classList.remove("bg-gradient-to-r", "from-red-700", "to-orange-500");
+            box.classList.add("bg-black");
+            return;
+        }
+
+        box.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Name is loading...';
+        box.classList.remove("bg-gradient-to-r", "from-red-700", "to-orange-500");
+        box.classList.add("bg-black");
+
+        const apiURL = `https://bhauxinfo2.vercel.app/bhau?uid=${uid}&region=BD&key=YOUR_API_KEY_HERE`;
+
+        fetch(apiURL)
+            .then(res => res.json())
+            .then(data => {
+                let name =
+                    (data.basicInfo && data.basicInfo.nickname) ||
+                    data.nickname ||
+                    "Invalid UID ";
+
+                box.innerHTML = name; 
+            })
+            .catch(() => {
+                box.innerHTML = "No nickname found!";
+            });
+    }
+
+    // --- OTHER HELPERS ---
+    function showSec(secId) {
+        // Guard restricted sections
+        if ((secId === 'history' || secId === 'account' || secId === 'addmoney') && !currentUser) {
+            showSec('auth');
+            return;
+        }
+
+        document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-tab'));
+        document.getElementById(secId + '-sec').classList.remove('hidden');
+        const navBtn = document.getElementById('nav-' + secId);
+        if(navBtn) navBtn.classList.add('active-tab');
+        
+        const noticeSection = document.getElementById('notice-section');
+        if(secId === 'home') {
+            noticeSection.classList.remove('hidden');
+        } else {
+            noticeSection.classList.add('hidden');
+        }
+        
+        if(secId === 'addmoney') {
+            // Reset to Step 1 every time we enter Add Money section
+            isDirectBuy = false; // Reset direct buy flag
+            document.getElementById('am-step-1').classList.remove('hidden');
+            document.getElementById('am-step-2').classList.add('hidden');
+            document.getElementById('am-step-3').classList.add('hidden');
+        }
+        if(secId === 'history') {
+            loadHistory();
+        }
+        
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    }
+    
+    function loadHistory() {
+        const list = document.getElementById('history-list');
+        if (!currentUser) return;
+
+        list.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-sky-500"></i> Loading History...</div>';
+
+        db.collection('orders').where('userId', '==', currentUser.uid).limit(50).get()
+            .then(snapshot => {
+                if (snapshot.empty) {
+                    list.innerHTML = `<div class="text-center py-8 text-gray-500"><p>No orders found</p></div>`;
+                    return;
+                }
+
+                const orders = [];
+                snapshot.forEach(doc => {
+                    orders.push(doc.data());
+                });
+
+                orders.sort((a, b) => {
+                    const dateA = a.date ? a.date.toDate() : new Date(0);
+                    const dateB = b.date ? b.date.toDate() : new Date(0);
+                    return dateB - dateA;
+                });
+
+                list.innerHTML = "";
+                
+                orders.forEach(d => {
+                    let statusColor = "bg-yellow-100 text-yellow-700 border-yellow-500";
+                    let icon = "fa-clock";
+
+                    const status = d.status ? d.status.toLowerCase() : 'pending';
+                    if (status === 'success' || status === 'complete' || status === 'completed') {
+                        statusColor = "bg-green-100 text-green-700 border-green-500";
+                        icon = "fa-check-circle";
+                    } else if (status === 'cancel' || status === 'rejected') {
+                        statusColor = "bg-red-100 text-red-700 border-red-500";
+                        icon = "fa-times-circle";
+                    }
+
+                    let dateStr = "N/A";
+                    if (d.date && d.date.toDate) {
+                        dateStr = d.date.toDate().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+                    }
+
+                    let detailsInfo = d.redeemCode ? `
+                        <div class="mt-2 bg-green-50 border border-green-200 rounded p-2 text-center">
+                            <p class="text-[10px] text-green-600 font-bold uppercase">Your Voucher Code</p>
+                            <p class="text-sm font-mono font-bold text-gray-800 select-all tracking-wider break-all">${d.redeemCode}</p>
+                        </div>` : `
+                        <div class="mt-1 inline-block bg-gray-50 border border-gray-200 rounded px-2 py-0.5">
+                            <p class="text-[10px] text-gray-500 font-mono">ID: <span class="text-gray-700 font-bold select-all">${d.playerId}</span></p>
+                        </div>`;
+
+                    list.innerHTML += `
+                        <div class="bg-white border border-gray-200 rounded-lg mb-3">
+                            <div class="p-3">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 text-sm">${d.gameName}</h4>
+                                        <p class="text-xs text-gray-500">${dateStr}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-bold text-sky-600">৳${d.price}</p>
+                                        <span class="text-xs font-medium ${statusColor.includes('green') ? 'text-green-600' : statusColor.includes('red') ? 'text-red-600' : 'text-yellow-600'}">${d.status}</span>
+                                    </div>
+                                </div>
+                                <div class="border-t border-gray-100 pt-2 mt-2">
+                                    <p class="text-xs font-medium text-gray-700 mb-1">${d.productName}</p>
+                                    ${detailsInfo}
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            })
+            .catch(error => {
+                console.error("Error loading order history: ", error);
+                list.innerHTML = `<div class="text-center text-red-500 py-4 text-xs font-mono">Error: ${error.message}</div>`;
+            });
+    }
+
+    function loadRecentOrdersGlobal() {
+        const container = document.getElementById('latest-orders-list');
+        db.collection('orders').orderBy('date', 'desc').limit(5)
+          .onSnapshot((snapshot) => {
+              if (snapshot.empty) {
+                  container.innerHTML = '<div class="text-center text-gray-700 text-xs py-2">No recent orders</div>'; return;
+              }
+              container.innerHTML = ""; 
+              snapshot.forEach(doc => {
+                  const data = doc.data();
+                  let displayName = "Customer";
+                  if(data.userName) { displayName = data.userName.includes('@') ? data.userName.split('@')[0] : data.userName; }
+                  const firstChar = displayName.charAt(0).toUpperCase();
+                  let statusText = (data.status || 'pending').toLowerCase();
+                  let statusBadgeClass = 'bg-red-500 text-white';
+                  if (['success', 'complete', 'completed'].includes(statusText)) {
+                      statusBadgeClass = 'bg-[#198754] text-white';
+                      statusText = 'completed';
+                  } else if (['pending', 'processing'].includes(statusText)) {
+                      statusBadgeClass = 'bg-[#ffc107] text-gray-800';
+                      statusText = 'processing';
+                  }
+                  container.innerHTML += `<div class="bg-white p-3 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-gray-100 flex items-center justify-between"><div class="flex items-center gap-3 overflow-hidden"><div class="w-11 h-11 min-w-[44px] bg-[#0d6efd] rounded-full flex items-center justify-center text-white text-lg font-sans font-medium shadow-sm">${firstChar}</div><div class="flex flex-col truncate"><span class="text-gray-600 font-bold text-sm truncate">${displayName}</span><span class="text-gray-500 text-[11px] font-medium truncate">${data.productName} - ${data.price} ৳</span></div></div><div class="${statusBadgeClass} px-3 py-1 rounded-full text-[10px] font-bold capitalize shadow-sm whitespace-nowrap ml-2">${statusText}</div></div>`;
+              });
+          }, (error) => {
+               console.error("Error loading recent orders: ", error);
+               container.innerHTML = `<div class="text-center text-red-500 py-4 text-xs font-mono">Could not load recent orders.</div>`;
+          });
+    }
+
+    function toggleFabMenu() {
+        const fabContainer = document.getElementById('fab-container');
+        const helpText = document.getElementById('fab-help-text');
+        fabContainer.classList.toggle('is-open');
+
+        if (fabContainer.classList.contains('is-open')) {
+            helpText.classList.add('opacity-0');
+        } else {
+            helpText.classList.remove('opacity-0');
+        }
+    }
+    
+    function loadBanners() {
+        db.collection("banners").onSnapshot((snapshot) => {
+            const wrapper = document.getElementById('slider-wrapper');
+            let slidesHTML = "";
+            snapshot.forEach((doc) => { if(doc.data().image) slidesHTML += `<img src="${doc.data().image}" class="w-full h-full object-cover flex-shrink-0">`; });
+            if(slidesHTML) { wrapper.innerHTML = slidesHTML; startSlider(); }
+        });
+    }
+    
+    let sliderInterval;
+    function startSlider() {
+        clearInterval(sliderInterval);
+        let idx = 0;
+        const wrapper = document.getElementById('slider-wrapper');
+        const count = wrapper.children.length;
+        if(count <= 1) return;
+        sliderInterval = setInterval(() => {
+            idx = (idx + 1) % count;
+            wrapper.style.transform = `translateX(-${idx * 100}%)`;
+        }, 3000);
+    }
+
+    // ============================================
+    // === NEW LOGIC FOR UPDATED ADD MONEY UI ===
+    // ============================================
+
+    let currentDepositAmount = 0;
+    let currentPaymentMethod = '';
+
+    // Step 1 -> Step 2
+    function goToMethodStep() {
+        const inputVal = document.getElementById('new-amount-input').value;
+        if (!inputVal || inputVal < 10) {
+            return Swal.fire('Error', 'Please enter a valid amount (Min 10 Tk)', 'error');
+        }
+        currentDepositAmount = parseInt(inputVal);
+        
+        document.getElementById('am-step-1').classList.add('hidden');
+        document.getElementById('am-step-2').classList.remove('hidden');
+    }
+
+    // Step 2 -> Step 1 (Back)
+    function backToAmountStep() {
+        if (isDirectBuy) {
+            // If in direct buy mode, back goes to TopUp Page
+            document.getElementById('am-step-2').classList.add('hidden');
+            document.getElementById('addmoney-sec').classList.add('hidden'); // Fix: Hide parent section
+            document.getElementById('topup-sec').classList.remove('hidden');
+            isDirectBuy = false;
+        } else {
+            document.getElementById('am-step-2').classList.add('hidden');
+            document.getElementById('am-step-1').classList.remove('hidden');
+        }
+    }
+
+    // Step 2 -> Step 3 (Payment Page)
+    function goToPaymentPage(method, themeClass, logoUrl) {
+        currentPaymentMethod = method;
+        
+        // Update UI Elements for Payment Page
+        document.getElementById('pay-method-logo').src = logoUrl;
+        document.getElementById('pay-amount-display').innerText = currentDepositAmount;
+        document.getElementById('pay-amount-text').innerText = currentDepositAmount;
+        
+        // Update Method Names in Instruction Text
+        document.querySelectorAll('.method-name').forEach(el => el.innerText = method);
+        
+        // Reset and Apply Theme Color
+        const themeCard = document.getElementById('payment-theme-card');
+        themeCard.className = `rounded-xl shadow-lg overflow-hidden text-white mb-6 relative transition-colors duration-300 ${themeClass}`;
+
+        // Fetch Number from Admin Panel
+        document.getElementById('pay-admin-number').innerText = "Loading...";
+        db.collection("admin").doc("payment").get().then(doc => {
+            if(doc.exists) {
+                const data = doc.data();
+const keyMap = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket' };
+const fieldKey = keyMap[method.toLowerCase()] || method;
+const num = data[fieldKey] || "Not Available";
+                document.getElementById('pay-admin-number').innerText = num;
+            }
+        });
+
+        document.getElementById('am-step-2').classList.add('hidden');
+        document.getElementById('am-step-3').classList.remove('hidden');
+    }
+
+    // Step 3 -> Step 2 (Back)
+    function backToMethodStep() {
+        document.getElementById('am-step-3').classList.add('hidden');
+        document.getElementById('am-step-2').classList.remove('hidden');
+    }
+
+    // Copy Logic
+    function copyPayNumber() {
+        const num = document.getElementById('pay-admin-number').innerText;
+        navigator.clipboard.writeText(num);
+        Swal.fire({
+            toast: true,
+            icon: 'success',
+            title: 'Number Copied!',
+            position: 'top',
+            showConfirmButton: false,
+            timer: 1500
+        });
+    }
+
+    // Main Verify Handler
+    function handleNewVerify() {
+        const trxId = document.getElementById('pay-trx-input').value.trim();
+        
+        if (!trxId) {
+            return Swal.fire('Required', 'Please enter the Transaction ID.', 'warning');
+        }
+
+        if (isAutoPayEnabled) {
+            verifyAutoPayment(trxId, currentDepositAmount);
+        } else {
+            if (isDirectBuy) {
+                Swal.fire('Notice', 'Manual verification is not supported for Instant Buy. Please contact support.', 'warning');
+            } else {
+                submitDeposit(trxId, currentDepositAmount);
+            }
+        }
+    }
+
+    // --- REUSED EXISTING LOGIC FUNCTIONS ---
+
+    // Manual Deposit Logic
+    function submitDeposit(trxId, amount) {
+        Swal.showLoading();
+        db.collection('deposits').add({
+            userId: currentUser.uid, 
+            amount: parseInt(amount), 
+            trxId: trxId.toUpperCase(), 
+            status: 'pending', 
+            date: new Date(), 
+            userEmail: currentUser.email,
+            method: currentPaymentMethod
+        }).then(() => {
+            notifyAdminNewOrder("💰 নতুন ডিপোজিট রিকোয়েস্ট!", `মেথড: ${currentPaymentMethod} | টাকা: ৳${amount} | TrxID: ${trxId.toUpperCase()} (${currentUser.email})`);
+            Swal.fire({
+                title: 'Request Submitted', 
+                text: 'Your deposit request has been sent. Please wait for admin approval.', 
+                icon: 'success',
+                confirmButtonColor: '#d33'
+            }).then(() => {
+                showSec('home'); // Go home after success
+            });
+        }).catch(err => Swal.fire('Error', err.message, 'error'));
+    }
+
+    // =========================================================================
+    // ⚡ TOURNAMENT STYLE ULTRA-FAST AUTO PAYMENT (DUAL FIREBASE INTEGRATION)
+    // =========================================================================
+    const userPaymentAttemptCounts = {};
+
+    async function verifyAutoPayment(trxId, rawAmt) {
+        if (!currentUser) return Swal.fire('Error', 'Please login first', 'error');
+
+        const cleanTrxId = String(trxId || '').replace(/[.#$\[\]\/]/g, '').trim().toUpperCase();
+        const amountNum = parseFloat(rawAmt) || 0;
+
+        if (!cleanTrxId || cleanTrxId.length < 4) {
+            return Swal.fire({ icon: 'error', title: 'ভুল ট্রানজেকশন আইডি', text: 'ট্রানজেকশন আইডির ফরম্যাট সঠিক নয়!' });
+        }
+        if (!amountNum || amountNum <= 0) {
+            return Swal.fire({ icon: 'warning', title: 'Oops!', text: 'অনুগ্রহ করে টাকার সঠিক পরিমাণ দিন!' });
+        }
+
+        Swal.fire({
+            title: 'যাচাই করা হচ্ছে...',
+            text: 'পেমেন্ট গেটওয়ে সার্ভার থেকে ট্রানজেকশন চেক করা হচ্ছে, অপেক্ষা করুন...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        try {
+            // ১. নতুন পেমেন্ট ফায়ারবেজে (`tournament800-5941d`) চেক (Auto Pay ও Pending Deposit)
+            const [usedSnap, pendingSnap] = await Promise.all([
+                paymentDb.collection('Auto Pay').doc(cleanTrxId).get().catch(() => null),
+                paymentDb.collection('deposit_requests').where('txID', '==', cleanTrxId).limit(1).get().catch(() => null)
+            ]);
+
+            if (usedSnap && usedSnap.exists) {
+                return Swal.fire({ 
+                    icon: 'error', 
+                    title: 'ব্যবহৃত ট্রানজেকশন!', 
+                    text: 'এই ট্রানজেকশন আইডিটি দিয়ে ইতোমধ্যে টাকা অ্যাড করা হয়ে গেছে!' 
+                });
+            }
+
+            if (pendingSnap && !pendingSnap.empty) {
+                const pendDoc = pendingSnap.docs[0].data();
+                if (pendDoc.status === 'pending') {
+                    return Swal.fire({ 
+                        icon: 'info', 
+                        title: 'অনুরোধ জমা রয়েছে', 
+                        text: 'এই ট্রানজেকশন আইডিটি ইতোমধ্যে পেন্ডিং রয়েছে। অ্যাডমিন খুব দ্রুত এটি যাচাই করে অ্যাপ্রুভ করবেন।' 
+                    });
+                }
+            }
+
+            // ২. XNXANIKPAY কালেকশনে TrxID দিয়ে অতি দ্রুত সার্চ (রিডার অ্যাপের ডাটা)
+            let matchedPayment = null;
+
+            // ২.১ সরাসরি ডকুমেন্ট আইডি চেক
+            try {
+                const directDoc = await paymentDb.collection('XNXANIKPAY').doc(cleanTrxId).get();
+                if (directDoc.exists) matchedPayment = directDoc.data();
+            } catch(e) {}
+
+            // ২.২ ফিল্টার কুয়েরি
+            if (!matchedPayment) {
+                try {
+                    const qTrx = await paymentDb.collection('XNXANIKPAY').where('txid', '==', cleanTrxId).limit(1).get();
+                    if (!qTrx.empty) matchedPayment = qTrx.docs[0].data();
+                } catch(e) {}
+            }
+
+            // ২.৩ যদি ফরওয়ার্ডার অ্যাপ ফিল্ড ছোট হাতের করে থাকে, তবে সাম্প্রতিক ২৫টি SMS চেক
+            if (!matchedPayment) {
+                try {
+                    const recentSmsSnap = await paymentDb.collection('XNXANIKPAY').limit(25).get();
+                    recentSmsSnap.forEach(dSnap => {
+                        const p = dSnap.data();
+                        if (p) {
+                            const cTrx = String(p.txid || p.trxId || p.transaction_id || '').replace(/[.#$\[\]\/]/g, '').trim().toUpperCase();
+                            if (cTrx === cleanTrxId) matchedPayment = p;
+                        }
+                    });
+                } catch(e) {}
+            }
+
+            const now = new Date();
+
+            // ৩. ম্যাচ পেলে সরাসরি ব্যালেন্স অ্যাড (Auto Approved)
+            if (matchedPayment && (matchedPayment.amount || amountNum)) {
+                const rechargeAmount = parseFloat(matchedPayment.amount) || amountNum;
+
+                // ৩.১ পেমেন্ট ফায়ারবেজে ট্রানজেকশন লক করা
+                const paymentBatch = paymentDb.batch();
+                paymentBatch.set(paymentDb.collection('Auto Pay').doc(cleanTrxId), {
+                    amount: rechargeAmount,
+                    usedBy: currentUser.uid,
+                    userEmail: currentUser.email || '',
+                    method: currentPaymentMethod,
+                    timestamp: now.toLocaleString(),
+                    timestampMs: Date.now()
+                });
+                paymentBatch.set(paymentDb.collection('deposit_requests').doc(), {
+                    userId: currentUser.uid,
+                    userName: currentUser.displayName || 'User',
+                    userEmail: currentUser.email || '',
+                    amount: rechargeAmount,
+                    method: currentPaymentMethod,
+                    txID: cleanTrxId,
+                    status: 'approved',
+                    type: 'Auto Approved',
+                    timestamp: now.toLocaleString(),
+                    timestampMs: Date.now()
+                });
+                await paymentBatch.commit();
+
+                // ৩.২ মেইন ফায়ারবেজে (`topup-7849b`) ইউজারের ব্যালেন্স বৃদ্ধি ও হিস্টোরি সংরক্ষণ
+                const userRef = db.collection('users').doc(currentUser.uid);
+                await db.runTransaction(async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    const newBal = (userDoc.data()?.balance || 0) + rechargeAmount;
+                    transaction.update(userRef, { balance: newBal });
+                });
+
+                await db.collection('deposits').add({
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email || '',
+                    amount: rechargeAmount,
+                    trxId: cleanTrxId,
+                    status: 'approved',
+                    method: currentPaymentMethod + ' (Auto)',
+                    date: now
+                });
+
+                delete userPaymentAttemptCounts[cleanTrxId];
+                document.getElementById('pay-trx-input').value = '';
+
+                // ৩.৩ ইনস্ট্যান্ট বাই থাকলে সরাসরি অর্ডার প্লেস
+                if (isDirectBuy && pendingDirectOrder) {
+                    userBalance += rechargeAmount;
+                    Swal.fire({
+                        title: 'Payment Verified!',
+                        text: 'Processing your order now...',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+
+                    if (pendingDirectOrder.gameType === 'code') {
+                        await processVoucherOrder(pendingDirectOrder.playerId);
+                    } else if (pendingDirectOrder.gameType === 'auto-topup') {
+                        await processAutoTopUpOrder(pendingDirectOrder.playerId);
+                    } else {
+                        processUidOrder(pendingDirectOrder.playerId);
+                    }
+                    isDirectBuy = false;
+                    pendingDirectOrder = null;
+                } else {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'টাকা যোগ সফল হয়েছে! 🎉',
+                        text: `৳${rechargeAmount} আপনার ডিপোজিট ব্যালেন্সে যুক্ত করা হয়েছে।`
+                    }).then(() => showSec('home'));
+                }
+                return;
+            }
+
+            // ৪. ম্যাচ না পেলে ট্রাই গণনা (টর্নামেন্ট অ্যাপের মতো ১ম ট্রাই ওয়ার্নিং)
+            if (!userPaymentAttemptCounts[cleanTrxId]) {
+                userPaymentAttemptCounts[cleanTrxId] = 1;
+            } else {
+                userPaymentAttemptCounts[cleanTrxId]++;
+            }
+
+            if (userPaymentAttemptCounts[cleanTrxId] === 1) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'ট্রাঞ্জেকশন পাওয়া যায়নি!',
+                    html: `আপনার দেওয়া ট্রাঞ্জেকশন আইডি <b>${cleanTrxId}</b>-এর কোনো পেমেন্ট ম্যাচ করেনি।<br><br><b style="color:#0284c7;">অনুগ্রহ করে নম্বর ও TrxID মিলিয়ে আবার চেষ্টা করুন।</b>`,
+                    confirmButtonText: 'আবার চেষ্টা করুন'
+                });
+            }
+
+            // ২য় ট্রাই: সার্ভার ব্যস্ততার মেসেজ এবং পেমেন্ট ফায়ারবেসে পেন্ডিং রিকোয়েস্ট সাবমিট
+            await paymentDb.collection('deposit_requests').add({
+                userId: currentUser.uid,
+                userName: currentUser.displayName || 'User',
+                userEmail: currentUser.email || '',
+                amount: amountNum,
+                method: currentPaymentMethod,
+                txID: cleanTrxId,
+                status: 'pending',
+                type: 'Manual Pending',
+                timestamp: now.toLocaleString(),
+                timestampMs: Date.now()
+            });
+
+            await db.collection('deposits').add({
+                userId: currentUser.uid,
+                userEmail: currentUser.email || '',
+                amount: amountNum,
+                trxId: cleanTrxId,
+                status: 'pending',
+                method: currentPaymentMethod,
+                date: now
+            });
+
+            delete userPaymentAttemptCounts[cleanTrxId];
+            document.getElementById('pay-trx-input').value = '';
+
+            return Swal.fire({
+                icon: 'info',
+                title: 'সার্ভার ব্যস্ত রয়েছে ⏳',
+                html: `আমাদের গেটওয়ে সার্ভার ব্যস্ত থাকার কারণে অটো যোগ হতে কিছুটা সময় লাগছে।<br><br>আপনার ডিপোজিট রিকোয়েস্টটি অ্যাডমিনের কাছে পাঠানো হয়েছে। এডমিন যাচাই করে দ্রুত ব্যালেন্সে টাকা যুক্ত করে দেবেন।`,
+                confirmButtonText: 'ঠিক আছে',
+                confirmButtonColor: '#0284c7'
+            }).then(() => {
+                showSec('home');
+            });
+
+        } catch (err) {
+            console.error("Auto payment verification error:", err);
+            Swal.fire('Error', err.message, 'error');
+        }
+    }
+
+</script>
+<!-- 🔐 TOURNAMENT STYLE OTP VERIFICATION MODAL -->
+<div id="otp-verification-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-2xl border border-gray-100 animate-fade-in relative">
+        <div class="w-16 h-16 bg-sky-100 text-sky-600 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 shadow-sm">
+            <i class="fas fa-shield-alt"></i>
+        </div>
+        <h3 class="text-lg font-bold text-gray-800" id="otp-modal-title">ভেরিফিকেশন কোড দিন</h3>
+        <p class="text-xs text-gray-500 mt-1 mb-5" id="otp-modal-desc">আপনার ঠিকানায় ৬-সংখ্যার কোড পাঠানো হয়েছে</p>
+
+        <div class="mb-5">
+            <input type="text" id="otp-input-code" maxlength="6" inputmode="numeric" placeholder="• • • • • •" 
+                   class="w-full text-center text-2xl font-bold tracking-[8px] py-3 px-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-sky-500 font-mono text-gray-800">
+        </div>
+
+        <div class="flex justify-between items-center text-xs text-gray-500 mb-5 px-1">
+            <span>পুনরায় পাঠান: <b id="otp-resend-timer" class="text-sky-600">05:00</b></span>
+            <button type="button" id="btn-otp-resend-action" onclick="resendOtpCode()" disabled class="text-sky-600 font-bold hover:underline disabled:opacity-40 disabled:no-underline">
+                Resend Code
+            </button>
+        </div>
+
+        <div class="space-y-2">
+            <button type="button" onclick="submitOtpVerification()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl shadow-lg transition duration-200">
+                <i class="fas fa-check mr-1"></i> কোড নিশ্চিত করুন (Verify)
+            </button>
+            <button type="button" onclick="closeOtpVerificationModal()" class="w-full py-2.5 text-gray-500 hover:text-gray-700 text-xs font-semibold">
+                বাতিল করুন (Cancel)
+            </button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
