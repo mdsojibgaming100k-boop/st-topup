@@ -2005,59 +2005,32 @@
 
         // 📱 অ্যাডমিন ডিভাইস রেজিস্টার (ফুল-স্ক্রিন স্পিনার মুক্ত, সরাসরি Allow প্রম্পট আসবে)
         window.registerThisDeviceAsAdmin = async function() {
+            window.registerThisDeviceAsAdmin = async function() {
             if ("Notification" in window && Notification.permission === "denied") {
                 return Swal.fire({
                     icon: 'warning',
                     title: 'নোটিফিকেশন ব্লক করা!',
-                    html: 'আপনার ব্রাউজারে নোটিফিকেশন ব্লক করা আছে।<br><br>অনুগ্রহ করে ব্রাউজারের উপরে থাকা <b>তাল বা সাইট সেটিংসে</b> গিয়ে <b>Notifications: Allow</b> করুন এবং পেজ রিলোড দিন।'
+                    html: 'আপনার ব্রাউজারে নোটিফিকেশন ব্লক করা আছে।<br><br>অনুগ্রহ করে ব্রাউজারের সাইট লিঙ্ক বারের লক (Lock) আইকনে চাপ দিয়ে <b>Notifications: Allow</b> করুন এবং পেজ রিলোড দিন।'
                 });
             }
 
-            const regBtn = document.querySelector('button[onclick="registerThisDeviceAsAdmin()"]');
-            let originalBtnHtml = '';
-            if (regBtn) {
-                originalBtnHtml = regBtn.innerHTML;
-                regBtn.disabled = true;
-                regBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i> সংযোগ করা হচ্ছে...`;
-            }
-
-            let isCompleted = false;
-            const safetyTimeout = setTimeout(() => {
-                if (!isCompleted) {
-                    if (regBtn) {
-                        regBtn.disabled = false;
-                        regBtn.innerHTML = originalBtnHtml;
-                    }
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'ব্রাউজার পারমিশন চেক করুন',
-                        html: 'আপনার ব্রাউজারের উপরে বা নোটিফিকেশন বারে কোনো <b>Allow</b> অপশন এসেছে কিনা দেখুন।'
-                    });
-                }
-            }, 6000);
-
             try {
+                // ১. গুগল ক্রোমের সরাসরি পপ-আপ খোলা
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') {
+                    return Swal.fire('অনুমতি দেওয়া হয়নি', 'অ্যাডমিন এলার্ট পাওয়ার জন্য Allow বাটনে চাপ দিতে হবে।', 'warning');
+                }
+
+                // ২. OneSignal এ অ্যাডমিন ডিভাইস ট্যাগ যুক্ত করা (আপনার api/notify এর সাথে হুবহু মিল)
                 window.OneSignalDeferred = window.OneSignalDeferred || [];
                 OneSignalDeferred.push(async function(OneSignal) {
                     try {
-                        // ১. OneSignal এর অফিশিয়াল পারমিশন ডায়ালগ
                         await OneSignal.Notifications.requestPermission();
-
-                        // ২. অ্যাডমিন রোল ট্যাগ যুক্ত করা
                         await OneSignal.User.addTag("role", "admin");
                         await OneSignal.User.addTag("admin_alerts", "true");
 
-                        // ৩. সাবস্ক্রিপশন সম্পন্ন করা
                         if (OneSignal.User && OneSignal.User.PushSubscription) {
                             await OneSignal.User.PushSubscription.optIn();
-                        }
-
-                        isCompleted = true;
-                        clearTimeout(safetyTimeout);
-
-                        if (regBtn) {
-                            regBtn.disabled = false;
-                            regBtn.innerHTML = originalBtnHtml;
                         }
 
                         const badge = document.getElementById('admin-device-badge');
@@ -2069,28 +2042,15 @@
                         Swal.fire({
                             icon: 'success',
                             title: 'ডিভাইস রেজিস্টার সফল! 🎉',
-                            html: 'আপনার ফোনটি অ্যাডমিন হিসেবে সফলভাবে সক্রিয় হয়েছে।<br><br>এখন <b>"টেস্ট অ্যাডমিন এলার্ট"</b> বাটনে চাপুন।',
+                            html: 'আপনার ফোনটি অ্যাডমিন হিসেবে সফলভাবে সক্রিয় হয়েছে।<br><br>এখন <b>"টেস্ট অ্যাডমিন এলার্ট"</b> বাটনে চাপ দিয়ে পরীক্ষা করুন।',
                             confirmButtonColor: '#F49E0B'
                         });
-
-                    } catch (innerErr) {
-                        isCompleted = true;
-                        clearTimeout(safetyTimeout);
-                        if (regBtn) {
-                            regBtn.disabled = false;
-                            regBtn.innerHTML = originalBtnHtml;
-                        }
-                        Swal.fire('ত্রুটি', innerErr.message || 'OneSignal সিঙ্ক হতে সমস্যা হয়েছে', 'error');
+                    } catch (e) {
+                        console.error(e);
+                        Swal.fire('ত্রুটি', e.message, 'error');
                     }
                 });
-
             } catch (err) {
-                isCompleted = true;
-                clearTimeout(safetyTimeout);
-                if (regBtn) {
-                    regBtn.disabled = false;
-                    regBtn.innerHTML = originalBtnHtml;
-                }
                 Swal.fire('ত্রুটি', err.message, 'error');
             }
         };
@@ -2187,13 +2147,14 @@
             const appId = document.getElementById('os-app-id')?.value.trim() || oneSignalConfigData.app_id || "f02ea885-f5f3-4c5e-9baa-d91066b14653";
 
             if (!restKey) {
-                return Swal.fire('REST API Key প্রয়োজন', 'সেটিংস থেকে OneSignal REST API Key দিন!', 'warning');
+                return Swal.fire('REST API Key প্রয়োজন', 'সেটিংস থেকে OneSignal REST API Key ইনপুট দিয়ে সেভ করুন!', 'warning');
             }
 
             const sendBtn = document.getElementById('os-send-btn');
             if (sendBtn) { sendBtn.disabled = true; sendBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> পাঠানো হচ্ছে...`; }
 
             try {
+                // ১. সরাসরি আপনার api/notify হ্যান্ডলার কল করা
                 const res = await fetch('/api/notify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2211,38 +2172,67 @@
 
                 const resData = await res.json();
 
-                if (res.ok && resData.success) {
-                    await db.collection('notifications').add({
-                        title: title,
-                        message: message,
-                        body: message,
-                        image: image,
-                        imageUrl: image,
-                        link: url,
-                        source: 'Vercel-OneSignal',
-                        targetUserId: audience === 'single' ? targetUid : 'all',
-                        time: new Date().toLocaleString(),
-                        timestampMs: Date.now()
-                    });
+                // ২. ব্যবহারকারীদের অ্যাপের ভেতরে লাইভ ড্রয়ার ও হিস্টোরিতেও সেভ রাখা
+                await db.collection('notifications').add({
+                    title: title,
+                    message: message,
+                    body: message,
+                    image: image,
+                    imageUrl: image,
+                    link: url,
+                    source: resData.success ? 'OneSignal-Vercel' : 'LiveApp',
+                    targetUserId: audience === 'single' ? targetUid : 'all',
+                    time: new Date().toLocaleString(),
+                    timestampMs: Date.now()
+                });
 
+                if (res.ok && resData.success) {
                     Swal.fire({
                         icon: 'success',
                         title: 'ব্রডকাস্ট সফলভাবে পাঠানো হয়েছে! 🚀',
-                        text: `সফলভাবে প্রাপক ডিভাইসে পৌঁছেছে (Recipients: ${resData.recipients})`
+                        html: `ফোনের স্ক্রিন এবং অ্যাপ উভয় স্থানেই সফলভাবে পাঠানো হয়েছে।<br>প্রাপক ডিভাইস: <b>${resData.recipients || 1}</b>`
                     });
-
-                    document.getElementById('os-push-title').value = '';
-                    document.getElementById('os-push-message').value = '';
-                    if (document.getElementById('os-push-image')) document.getElementById('os-push-image').value = '';
-                    loadNotificationHistory();
                 } else {
-                    Swal.fire('ব্যর্থ হয়েছে', resData.error ? JSON.stringify(resData.error) : 'OneSignal API Error', 'error');
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'অ্যাপে নোটিফিকেশন পাঠানো হয়েছে',
+                        text: resData.error ? (typeof resData.error === 'string' ? resData.error : JSON.stringify(resData.error)) : 'OneSignal API সিঙ্ক চেক করুন।'
+                    });
                 }
+
+                document.getElementById('os-push-title').value = '';
+                document.getElementById('os-push-message').value = '';
+                if (document.getElementById('os-push-image')) document.getElementById('os-push-image').value = '';
+                loadNotificationHistory();
+
             } catch(e) {
+                console.error("Broadcast Error:", e);
                 Swal.fire('Error', e.message, 'error');
             }
 
-            if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Vercel সার্ভারলেস ইঞ্জিন দিয়ে ব্রডকাস্ট পাঠান 🚀`; }
+            if (sendBtn) { 
+                sendBtn.disabled = false; 
+                sendBtn.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Vercel সার্ভারলেস ইঞ্জিন দিয়ে ব্রডকাস্ট পাঠান 🚀`; 
+            }
+        };
+                    html: pushSuccess 
+                        ? `ফোনের স্ক্রিন এবং অ্যাপ উভয় স্থানেই সফলভাবে পাঠানো হয়েছে। (ডিভাইস: <b>${recipientsCount}</b>)` 
+                        : `সকল ব্যবহারকারীর অ্যাপ ও নোটিফিকেশন ড্রয়ারে পাঠানো সম্পন্ন হয়েছে!`
+                });
+
+                document.getElementById('os-push-title').value = '';
+                document.getElementById('os-push-message').value = '';
+                if (document.getElementById('os-push-image')) document.getElementById('os-push-image').value = '';
+                loadNotificationHistory();
+
+            } catch (err) {
+                Swal.fire('Error', err.message, 'error');
+            }
+
+            if (sendBtn) { 
+                sendBtn.disabled = false; 
+                sendBtn.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Vercel সার্ভারলেস ইঞ্জিন দিয়ে ব্রডকাস্ট পাঠান 🚀`; 
+            }
         };
 
         function loadNotificationHistory() {
