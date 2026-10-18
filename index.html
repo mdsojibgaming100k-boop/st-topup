@@ -1148,7 +1148,9 @@
         });
     }
 
-    // ৪. OneSignal Engine ইনিশিয়ালাইজার (TOUR FF-এর মতো সরাসরি অ্যাক্টিভ)
+    // =========================================================================
+    // 🔔 100% BACKGROUND & CLOSED APP PUSH ENGINE (WAKE-UP SUPPORT)
+    // =========================================================================
     function initOneSignalEngine() {
         db.collection('settings').doc('onesignal').onSnapshot(doc => {
             if(doc.exists) {
@@ -1163,95 +1165,105 @@
                             await OneSignal.init({
                                 appId: userOneSignalAppId,
                                 allowLocalhostAsSecureOrigin: true,
-                                notifyButton: { enable: false }
+                                autoResubscribe: true,
+                                notifyButton: { enable: false },
+                                serviceWorkerParam: { scope: '/' },
+                                serviceWorkerPath: 'OneSignalSDKWorker.js'
                             });
-                            // নিশ্চিত করা যে সাধারণ ইউজার কখনই অ্যাডমিন হিসেবে গণ্য হবে না
+
+                            // নিশ্চিত করা যে এই ডিভাইসটি গ্রাহক হিসেবে FCM সিস্টেমে রেজিস্টার্ড হবে
                             await OneSignal.User.removeTag("role");
                             await OneSignal.User.removeTag("user_role");
                             await OneSignal.User.addTag("user_role", "customer");
+
+                            // ডিভাইস যাতে ব্যাকগ্রাউন্ড পারমিশন নিশ্চিত করে
+                            if (OneSignal.Notifications && OneSignal.Notifications.permission !== true) {
+                                await OneSignal.Notifications.requestPermission();
+                            }
                         } catch(e) {
-                            console.warn("OneSignal Webview Init:", e);
+                            console.warn("OneSignal Background Init:", e);
                         }
                     });
                 }
             }
         });
 
-        // ব্রাউজারে নোটিফিকেশন পারমিশন চাওয়া
+        // অ্যাপ বন্ধ থাকলেও পুশ পাওয়ার জন্য সিস্টেম পারমিশন রিকোয়েস্ট
         setTimeout(() => {
-            if ("Notification" in window && Notification.permission === "default") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        playNotificationChime();
-                        if (window.OneSignalDeferred) {
+            if ("Notification" in window) {
+                if (Notification.permission === "default") {
+                    Notification.requestPermission().then(perm => {
+                        if (perm === "granted") {
+                            playNotificationChime();
+                            window.OneSignalDeferred = window.OneSignalDeferred || [];
                             window.OneSignalDeferred.push(async function(OneSignal) {
                                 try { await OneSignal.Notifications.requestPermission(); } catch(e){}
                             });
                         }
-                    }
-                });
+                    });
+                }
             }
-        }, 2000);
+        }, 1500);
 
         listenRealtimeNotifications();
     }
     initOneSignalEngine();
 
-    // 👑 নির্ভরযোগ্য মাল্টি-গেটওয়ে দিয়ে OneSignal রিকোয়েস্ট পাঠানো
+    // ⚡ ফাস্ট ও নন-ব্লকিং OneSignal ডিসপ্যাচার (হ্যাং হওয়া প্রতিরোধক)
     async function executeOneSignalPost(payload, apiKey) {
+        if (!apiKey || !payload.app_id) return;
+        const cleanApiKey = apiKey.replace(/^(Basic|Key)\s+/i, '').trim();
+
         const endpoints = [
-            "https://api.onesignal.com/notifications",
             "https://corsproxy.io/?" + encodeURIComponent("https://api.onesignal.com/notifications"),
-            "https://proxy.corsfix.com/?https://api.onesignal.com/notifications"
+            "https://api.onesignal.com/notifications"
         ];
 
-        let lastErr = null;
         for (const url of endpoints) {
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500); // ২.৫ সেকেন্ডের বেশি আটকে থাকবে না
+
                 const res = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Basic ' + apiKey
+                        'Authorization': 'Basic ' + cleanApiKey
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
                 });
-                const data = await res.json();
-                if (data && (data.id || data.recipients !== undefined)) {
-                    return data;
-                }
-            } catch(e) {
-                lastErr = e;
-            }
+                clearTimeout(timeoutId);
+                if (res.ok) return await res.json();
+            } catch(e) {}
         }
-        throw lastErr || new Error("Push sending failed");
     }
 
-    // 👑 শুধুমাত্র অ্যাডমিন ডিভাইসের জন্য অর্ডার অ্যালার্ট (কাস্টমারদের কাছে যাওয়া ১০০% ব্লক)
-    async function notifyAdminNewOrder(title, message, type = 'order') {
+    // 👑 অ্যাডমিনের ফোনের জন্য High Priority (priority: 10) অর্ডার অ্যালার্ট
+    function notifyAdminNewOrder(title, message, type = 'order') {
         if (type === 'order' && autoPushSettings.order_push === false) return;
         if (type === 'deposit' && autoPushSettings.deposit_push === false) return;
 
-        // অ্যাডমিন প্যানেল নিজে সরাসরি Firestore orders/deposits দিয়ে লাইভ অ্যালার্ট পায়
-        // OneSignal দিয়ে পাঠালে শুধুমাত্র 'admin_device' এক্সটার্নাল আইডি টার্গেট করবে
         const targetApiKey = adminOneSignalApiKey;
         const targetAppId = adminOneSignalAppId || userOneSignalAppId;
         if (!targetApiKey || !targetAppId) return;
 
+        // 🚀 অ্যাডমিনের ফোন ঘুমন্ত/লক থাকলেও সাথে সাথে বাজানোর সেটিংস
         let payload = {
             app_id: targetAppId,
             headings: { en: title },
             contents: { en: message },
-            // কঠোর ফিল্টার: সাধারণ কোনো গ্রাহকের ফোনে এই মেসেজ যাবে না
+            priority: 10,  // High Priority: অ্যাডমিনের ফোনে সাথে সাথে বেজে উঠবে
+            ttl: 259200,    // ৩ দিন ব্যাকগ্রাউন্ড কিউ
+            android_visibility: 1,
+            content_available: true,
             include_aliases: { external_id: ["admin_device"] },
-            target_channel: "push"
+            target_channel: "push",
+            data: { type: type, timestamp: Date.now() }
         };
 
-        try {
-            await executeOneSignalPost(payload, targetApiKey);
-        } catch(err) {
-            console.warn("Admin Push delivery failed:", err);
-        }
+        // ব্যাকগ্রাউন্ডে নন-ব্লকিং এক্সিকিউশন (ইউজারের অর্ডার লোডিং আটকে থাকবে না)
+        executeOneSignalPost(payload, targetApiKey).catch(() => {});
     }
     let selectedGameType = 'uid';
     let gamesData = {};
