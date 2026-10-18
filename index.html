@@ -25,22 +25,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <!-- OneSignal Web Push SDK v16 (APK & WebView 100% Supported) -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer crossorigin="anonymous"></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          await OneSignal.init({
-            appId: "f02ea885-f5f3-4c5e-9baa-d91066b14653",
-            allowLocalhostAsSecureOrigin: true,
-            notifyButton: {
-              enable: false
-            }
-          });
-        } catch(err) {
-          console.warn("OneSignal APK WebView Init:", err);
-        }
-      });
-    </script>
     <title>DRL TOPUP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1135,6 +1119,7 @@
         });
     }
 
+    let isOneSignalInitialized = false;
     function initOneSignalEngine() {
         db.collection('settings').doc('onesignal').onSnapshot(doc => {
             if(doc.exists) {
@@ -1144,19 +1129,23 @@
                 if (d.admin_rest_api_key && d.admin_rest_api_key.trim()) adminOneSignalApiKey = d.admin_rest_api_key.trim();
                 autoPushSettings.order_push = d.auto_order_push !== false;
                 autoPushSettings.deposit_push = d.auto_deposit_push !== false;
-            }
-        });
 
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(async function(OneSignal) {
-            try {
-                await OneSignal.init({
-                    appId: userOneSignalAppId,
-                    allowLocalhostAsSecureOrigin: true,
-                    notifyButton: { enable: false }
-                });
-            } catch(e) {
-                console.warn("User OneSignal Init:", e);
+                if (!isOneSignalInitialized && userOneSignalAppId) {
+                    isOneSignalInitialized = true;
+                    window.OneSignalDeferred = window.OneSignalDeferred || [];
+                    window.OneSignalDeferred.push(async function(OneSignal) {
+                        try {
+                            await OneSignal.init({
+                                appId: userOneSignalAppId,
+                                allowLocalhostAsSecureOrigin: true,
+                                notifyButton: { enable: false }
+                            });
+                            OneSignal.User.addTag("user_role", "customer");
+                        } catch(e) {
+                            console.warn("User OneSignal Init:", e);
+                        }
+                    });
+                }
             }
         });
 
@@ -1221,13 +1210,13 @@
         }
     }
 
-    // 👑 শুধুমাত্র অ্যাডমিনের নিজস্ব OneSignal অ্যাপে নোটিফিকেশন পাঠানোর ফাংশন
+    // 👑 শুধুমাত্র অ্যাডমিনের নিজস্ব ডিভাইসে পুশ নোটিফিকেশন পাঠানোর ফাংশন
     async function notifyAdminNewOrder(title, message, type = 'order') {
         if (type === 'order' && autoPushSettings.order_push === false) return;
         if (type === 'deposit' && autoPushSettings.deposit_push === false) return;
 
-        // অ্যাডমিন স্লটে দেওয়া আলাদা App ID ও Key ব্যবহার করা হবে
-        const targetAppId = adminOneSignalAppId;
+        // অ্যাডমিনের App ID না থাকলে ডিফল্টটি নেওয়া হবে
+        const targetAppId = adminOneSignalAppId || userOneSignalAppId;
         const targetApiKey = adminOneSignalApiKey;
 
         if (!targetAppId || !targetApiKey) {
@@ -1235,35 +1224,36 @@
             return;
         }
 
-        // এটি শুধুমাত্র অ্যাডমিন অ্যাপে (Total Subscriptions) যাবে, কোনো সাধারণ ইউজার পাবে না!
+        // 🔥 শুধুমাত্র অ্যাডমিন ডিভাইস টার্গেট করা (সাধারণ কোনো ইউজার পাবে না)
         const payload = {
             app_id: targetAppId,
-            included_segments: ["Subscribed Users", "Total Subscriptions"],
+            include_aliases: { external_id: ["admin_device"] },
+            target_channel: "push",
             headings: { en: title },
             contents: { en: message }
         };
 
+        // যদি আলাদা অ্যাডমিন অ্যাপ আইডি কনফিগার করা থাকে, তবে তার Total Subscriptions এ যাবে
+        if (adminOneSignalAppId && adminOneSignalAppId !== userOneSignalAppId) {
+            delete payload.include_aliases;
+            payload.included_segments = ["Total Subscriptions"];
+        }
+
+        const sendReq = (url) => fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Key ${targetApiKey}`
+            },
+            body: JSON.stringify(payload)
+        });
+
         try {
-            await fetch('https://api.onesignal.com/notifications', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Key ${targetApiKey}`
-                },
-                body: JSON.stringify(payload)
-            });
+            await sendReq('https://api.onesignal.com/notifications');
         } catch(directErr) {
-            // CORS বাইপাস প্রক্সি (POST সাপোর্টেড)
             try {
                 const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent('https://api.onesignal.com/notifications');
-                await fetch(proxyUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Key ${targetApiKey}`
-                    },
-                    body: JSON.stringify(payload)
-                });
+                await sendReq(proxyUrl);
             } catch(err) {
                 console.warn("Admin Push delivery failed:", err);
             }

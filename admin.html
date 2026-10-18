@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - DRL ToPuP</title>
+    <title>Admin Panel - ST TOPUP</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,6 +12,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
+    <!-- OneSignal SDK for Admin Device Push (APK & Web Supported) -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer crossorigin="anonymous"></script>
 
     <script>
         tailwind.config = {
@@ -135,7 +138,7 @@
 
     <div id="login-modal" class="fixed inset-0 bg-dark-bg z-50 flex items-center justify-center p-4">
         <div class="card w-full max-w-md border border-dark-border">
-            <h2 class="text-3xl font-bold text-orange-500 mb-8 text-center tracking-wider">DRL TOP ADMIN</h2>
+            <h2 class="text-3xl font-bold text-orange-500 mb-8 text-center tracking-wider">ST  TOP ADMIN</h2>
             <input type="email" id="admin-email" placeholder="Admin Email" class="flat-input mb-4">
             <input type="password" id="admin-password" placeholder="Password" class="flat-input mb-8">
             <button onclick="loginAdmin()" class="flat-btn w-full text-lg">LOGIN</button>
@@ -146,7 +149,7 @@
 
     <aside class="w-72 bg-dark-panel border-r border-dark-border flex-col hidden fixed inset-y-0 left-0 z-50 lg:static lg:flex transition-transform transform -translate-x-full lg:translate-x-0" id="sidebar">
         <div class="p-8 border-b border-dark-border flex items-center justify-center relative">
-            <h1 class="text-2xl font-extrabold text-orange-500 tracking-widest">DRL<span class="text-white">ADMIN</span></h1>
+            <h1 class="text-2xl font-extrabold text-orange-500 tracking-widest">ST <span class="text-white">ADMIN</span></h1>
             <button class="absolute right-4 top-4 lg:hidden text-gray-400 hover:text-white" onclick="toggleSidebar()">
                 <i class="fas fa-times text-xl"></i>
             </button>
@@ -184,6 +187,12 @@
             </a>
             <a href="#" onclick="switchView('onesignal')" id="nav-onesignal" class="nav-link flex items-center px-4 py-3">
                 <i class="fas fa-bell w-8 text-center"></i> Push Notification
+            </a>
+            <a href="#" onclick="switchView('reader-device')" id="nav-reader-device" class="nav-link flex items-center px-4 py-3">
+                <i class="fas fa-server w-8 text-center text-emerald-400"></i> Payment Server
+            </a>
+            <a href="#" onclick="switchView('sms-cleaner')" id="nav-sms-cleaner" class="nav-link flex items-center px-4 py-3">
+                <i class="fas fa-sms w-8 text-center text-yellow-400"></i> Manage SMS (Clean)
             </a>
         </nav>
         <div class="p-6 border-t border-dark-border">
@@ -256,6 +265,34 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 🌐 PAYMENT GATEWAY SERVER STATUS WIDGET (TOURNAMENT STYLE) -->
+                <div class="card cursor-pointer border border-emerald-500/30 hover:border-emerald-500 transition-colors p-5 mb-8" onclick="switchView('reader-device')">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-2xl text-emerald-400">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span id="dash-reader-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] inline-block"></span>
+                                    <h4 class="font-bold text-base text-white">Central Payment Gateway Server</h4>
+                                    <span id="dash-reader-badge" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">অনলাইন ও সক্রিয়</span>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1" id="dash-reader-model">ডিভাইস: Android Gateway Node | অটো পেমেন্ট সিঙ্ক সক্রিয়</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 text-right">
+                            <div>
+                                <span class="text-xs text-gray-400 block">আজকের ট্রানজেকশন</span>
+                                <span id="dash-today-sms" class="text-lg font-bold text-emerald-400">0</span>
+                            </div>
+                            <button class="flat-btn text-xs py-2 px-4 whitespace-nowrap">
+                                সার্ভার মনিটর <i class="fas fa-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="view-settings" class="view-section hidden">
@@ -265,8 +302,25 @@
                         <div class="space-y-5">
                             <div><label class="block text-sm text-gray-400 mb-2 font-medium">Site Name</label><input type="text" id="set-sitename" class="flat-input"></div>
                             <div><label class="block text-sm text-gray-400 mb-2 font-medium">Logo URL</label><input type="text" id="set-logo" class="flat-input"></div>
+                            
+                            <!-- 🎨 USER APP THEME COLOR PICKER -->
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2 font-medium">User App Theme Color (কালার কোড)</label>
+                                <div class="flex items-center gap-3">
+                                    <input type="color" id="set-theme-picker" class="w-14 h-12 p-1 bg-dark-bg border border-dark-border rounded-lg cursor-pointer" oninput="document.getElementById('set-theme-color').value = this.value">
+                                    <input type="text" id="set-theme-color" class="flat-input font-mono flex-1 text-sm font-bold uppercase" placeholder="#0284c7" oninput="document.getElementById('set-theme-picker').value = this.value">
+                                </div>
+                                <small class="text-xs text-gray-500 mt-1 block">যেকোনো HEX কালার কোড লিখুন (যেমন: #0284c7, #E2136E, #10B981, #8B5CF6)।</small>
+                            </div>
+
                             <div><label class="block text-sm text-gray-400 mb-2 font-medium">Notice</label><textarea id="set-notice" class="flat-input h-24"></textarea></div>
-                            <div><label class="block text-sm text-gray-400 mb-2 font-medium">Support Link</label><input type="text" id="set-applink" class="flat-input"></div>
+                            <div>
+    <label class="block text-sm text-gray-400 mb-2 font-medium">
+        <i class="fas fa-download text-orange-500 mr-1"></i> App Download Link (APK / Drive / Mediafire লিংক)
+    </label>
+    <input type="url" id="set-applink" class="flat-input" placeholder="https://drive.google.com/... বা ডিরেক্ট APK লিংক দিন">
+    <small class="text-xs text-gray-500 mt-1 block">ইউজার অ্যাপের "DOWNLOAD APP" বাটনে ক্লিক করলে ইউজার এই লিংকে চলে যাবে।</small>
+</div>
                         </div>
                         <button onclick="saveSettings('general')" class="flat-btn mt-6 w-full">Save General Info</button>
                     </div>
@@ -361,6 +415,7 @@
                             <option value="uid">UID TopUp (Manual)</option>
                             <option value="code">Voucher Code (Auto Delivery)</option>
                             <option value="auto-topup">Auto TopUp (API Delivery)</option>
+                            <option value="guild-glory">👑 FF Guild Glory Bot (গিল্ড গ্লরি বট)</option>
                         </select>
                     </div>
                     <textarea id="srv-rules" placeholder="Rules/Instructions (One per line)" class="flat-input h-24 mb-5"></textarea>
@@ -378,11 +433,12 @@
                 <button onclick="switchView('services')" class="flat-btn-outline mb-6 flex items-center gap-2 w-max"><i class="fas fa-arrow-left"></i> Back to Services</button>
                 <div class="card mb-6 md:mb-8">
                     <h3 class="text-xl font-bold text-orange-500 mb-6">Manage Packages for: <span id="prod-service-name" class="text-white"></span></h3>
-                    <div class="flex flex-col md:flex-row gap-4">
-                        <input type="text" id="prod-name" placeholder="Package Name (e.g. 100 Diamonds)" class="flat-input flex-1">
-                        <input type="number" id="prod-price" placeholder="Price (৳)" class="flat-input w-full md:w-48">
-                        <button onclick="addProduct()" class="flat-btn whitespace-nowrap">Add Package</button>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <input type="text" id="prod-name" placeholder="Package Name (e.g. 1 BASIC)" class="flat-input">
+                        <input type="text" id="prod-note" placeholder="Note/ব্র্যাকেটের লেখা (যেমন: ৪টি বট)" class="flat-input">
+                        <input type="number" id="prod-price" placeholder="Price (৳)" class="flat-input">
                     </div>
+                    <button onclick="addProduct()" class="flat-btn w-full md:w-auto"><i class="fas fa-plus mr-1"></i> Add Package</button>
                 </div>
                 <div class="flat-table-container">
                     <table class="flat-table">
@@ -499,24 +555,77 @@
 
             <!-- ONESIGNAL PUSH NOTIFICATION VIEW -->
             <div id="view-onesignal" class="view-section hidden">
-                <!-- 1. Credentials Configuration -->
+                
+                <!-- 👑 স্লট ১: অ্যাডমিন নিজস্ব এলার্ট কনফিগারেশন (Admin Self Push Slot) -->
+                <div class="card mb-6 border-2 border-orange-500/50 bg-[#141416]">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-dark-border">
+                        <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500">
+                            <i class="fas fa-user-shield text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg md:text-xl font-bold text-orange-500">অ্যাডমিন অ্যাপ নোটিফিকেশন স্লট (Admin Alert Only)</h3>
+                            <p class="text-xs text-gray-400">আপনার অ্যাডমিন অ্যাপের OneSignal App ID ও Key এখানে দিন। অর্ডার ও ডিপোজিট আসলে শুধুমাত্র আপনার ফোনে নোটিফিকেশন আসবে।</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2 font-medium">Admin OneSignal App ID *</label>
+                            <input type="text" id="os-admin-app-id" class="flat-input font-mono text-sm" placeholder="অ্যাডমিন অ্যাপের App ID দিন">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-2 font-medium">Admin REST API Key *</label>
+                            <input type="password" id="os-admin-rest-api-key" class="flat-input font-mono text-sm" placeholder="অ্যাডমিন অ্যাপের REST API Key দিন">
+                        </div>
+                    </div>
+
+                    <!-- অটো এলার্ট চেকবক্স -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                        <div class="flex items-center gap-3 p-3 bg-dark-bg rounded-lg border border-dark-border">
+                            <input type="checkbox" id="os-auto-order" class="w-5 h-5 accent-orange-500 rounded cursor-pointer" checked>
+                            <label for="os-auto-order" class="text-xs md:text-sm font-semibold text-white cursor-pointer">
+                                🚨 নতুন অর্ডার আসলে নোটিফিকেশন দিন (Order Alert)
+                            </label>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-dark-bg rounded-lg border border-dark-border">
+                            <input type="checkbox" id="os-auto-deposit" class="w-5 h-5 accent-orange-500 rounded cursor-pointer" checked>
+                            <label for="os-auto-deposit" class="text-xs md:text-sm font-semibold text-white cursor-pointer">
+                                💰 নতুন ডিপোজিট আসলে নোটিফিকেশন দিন (Deposit Alert)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="saveOneSignalConfigAdmin()" class="flat-btn">
+                            <i class="fas fa-save mr-2"></i> Save Admin Push Slot
+                        </button>
+                        <button type="button" onclick="enableAdminDevicePush()" id="btn-admin-device-push" class="flat-btn-outline">
+                            <i class="fas fa-bell mr-2"></i> এই ফোনে পারমিশন দিন (Enable on this Phone)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 👥 স্লট ২: সাধারণ কাস্টমারদের জন্য ব্রডকাস্ট কনফিগারেশন -->
                 <div class="card mb-6">
-                    <div class="flex items-center gap-3 mb-6 pb-3 border-b border-dark-border">
-                        <i class="fas fa-key text-orange-500 text-xl"></i>
-                        <h3 class="text-xl font-bold text-white">OneSignal API Configuration</h3>
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-dark-border">
+                        <i class="fas fa-users text-blue-500 text-xl"></i>
+                        <div>
+                            <h3 class="text-lg font-bold text-white">কাস্টমার অ্যাপ কনফিগারেশন (User App Push)</h3>
+                            <p class="text-xs text-gray-400">সকল কাস্টমারদের অফার ও সাধারণ নোটিশ পাঠানোর OneSignal API</p>
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                         <div>
-                            <label class="block text-sm text-gray-400 mb-2 font-medium">OneSignal App ID *</label>
-                            <input type="text" id="os-app-id" class="flat-input font-mono text-sm" placeholder="e.g. 7398e8c1-9373-4680-bc63-...">
+                            <label class="block text-sm text-gray-400 mb-2 font-medium">Customer OneSignal App ID</label>
+                            <input type="text" id="os-app-id" class="flat-input font-mono text-sm" placeholder="কাস্টমার অ্যাপের App ID">
                         </div>
                         <div>
-                            <label class="block text-sm text-gray-400 mb-2 font-medium">OneSignal REST API Key *</label>
-                            <input type="password" id="os-rest-api-key" class="flat-input font-mono text-sm" placeholder="e.g. os_v2_app_... or Basic key">
+                            <label class="block text-sm text-gray-400 mb-2 font-medium">Customer REST API Key</label>
+                            <input type="password" id="os-rest-api-key" class="flat-input font-mono text-sm" placeholder="কাস্টমার অ্যাপের REST API Key">
                         </div>
                     </div>
-                    <button onclick="saveOneSignalConfigAdmin()" class="flat-btn w-full md:w-auto">
-                        <i class="fas fa-save mr-2"></i> Save OneSignal API
+                    <button onclick="saveOneSignalConfigAdmin()" class="flat-btn-outline">
+                        <i class="fas fa-save mr-2"></i> Save Customer Push API
                     </button>
                 </div>
 
@@ -584,6 +693,115 @@
                         </thead>
                         <tbody id="ban-list"></tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- 📡 PAYMENT GATEWAY SERVER MONITOR VIEW -->
+            <div id="view-reader-device" class="view-section hidden">
+                <div class="card mb-6 border border-emerald-500/30">
+                    <div class="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-dark-border">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-3xl text-emerald-400">
+                                <i class="fas fa-server" id="reader-device-main-icon"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span id="reader-working-state-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                        🟢 গেটওয়ে অনলাইন (Active)
+                                    </span>
+                                    <span id="reader-phone-battery-text" class="text-xs text-emerald-400 font-bold hidden">🔋 100% চার্জ</span>
+                                </div>
+                                <h3 class="text-lg font-bold text-white mt-1" id="reader-phone-model-text">Auto Transaction Gateway Server</h3>
+                                <div class="flex gap-4 text-xs text-gray-400 mt-1">
+                                    <span id="reader-android-ver-text"><i class="fas fa-microchip"></i> Engine: Auto Payment v2.5</span>
+                                    <span id="reader-network-type-text"><i class="fas fa-wifi"></i> Status: Connected</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-gray-400 uppercase font-semibold">সর্বশেষ সিঙ্ক (Last Heartbeat)</div>
+                            <div id="reader-last-seen-text" class="text-sm font-bold text-emerald-400 font-mono mt-1">এইমাত্র</div>
+                            <button class="flat-btn-outline text-xs py-1.5 px-3 mt-2" onclick="triggerReaderPingTest()">
+                                <i class="fas fa-sync-alt mr-1"></i> রিফ্রেশ পিং
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                        <div class="bg-dark-bg p-3 rounded-lg border border-dark-border text-center">
+                            <div class="text-xs text-gray-400">সার্ভার স্টেট</div>
+                            <div class="text-sm font-bold text-emerald-400 mt-1" id="metric-bg-running">চালু (Active)</div>
+                        </div>
+                        <div class="bg-dark-bg p-3 rounded-lg border border-dark-border text-center">
+                            <div class="text-xs text-gray-400">রিয়েলটাইম লিসেনার</div>
+                            <div class="text-sm font-bold text-emerald-400 mt-1" id="metric-sms-ready">সক্রিয় (Ready)</div>
+                        </div>
+                        <div class="bg-dark-bg p-3 rounded-lg border border-dark-border text-center">
+                            <div class="text-xs text-gray-400">আজকের ট্রানজেকশন</div>
+                            <div class="text-base font-bold text-emerald-400 mt-1" id="reader-today-sms-count">0</div>
+                        </div>
+                        <div class="bg-dark-bg p-3 rounded-lg border border-dark-border text-center">
+                            <div class="text-xs text-gray-400">মোট প্রসেসড লগ</div>
+                            <div class="text-base font-bold text-yellow-400 mt-1" id="reader-total-sms-count">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <h3 class="text-xl font-bold text-white">লাইভ রিডার সার্ভার ট্রানজেকশন</h3>
+                        <div class="relative w-full md:w-80">
+                            <input type="text" id="reader-sms-search" placeholder="Search by TrxID, sender, amount..." class="flat-input pl-10" onkeyup="filterReaderDeviceLogs()">
+                            <i class="fas fa-search absolute left-3 top-4 text-gray-400"></i>
+                        </div>
+                    </div>
+                    <div class="space-y-3" id="reader-device-log-list">
+                        <div class="text-center py-10 text-gray-400">লোড হচ্ছে...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🧹 MANAGE SMS (CLEANER & RAW PARSER) VIEW -->
+            <div id="view-sms-cleaner" class="view-section hidden">
+                <div class="card mb-6 border border-yellow-500/30">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="text-lg font-bold text-yellow-400"><i class="fas fa-robot mr-2"></i>Sketchware Pro Reader Sync</h4>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">সক্রিয়</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">রিডার ফোন থেকে বিকাশ, নগদ ও রকেটের রিয়েল-টাইম SMS এখানে সিঙ্ক হবে।</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="flat-btn-outline text-xs py-2 px-3" onclick="checkReaderSyncHealth()">
+                                <i class="fas fa-sync-alt mr-1"></i> টেস্ট কানেকশন
+                            </button>
+                            <button class="flat-btn flat-btn-danger text-xs py-2 px-3" onclick="deleteAllSmsLogs()">
+                                <i class="fas fa-trash-alt mr-1"></i> সব মুছুন
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-6 border border-dark-border">
+                    <h4 class="text-sm font-bold text-emerald-400 mb-2">⚡ ইনস্ট্যান্ট SMS পার্সার (সরাসরি মেসেজ পেস্ট করুন)</h4>
+                    <textarea id="quick-raw-sms-input" class="flat-input h-20 mb-3" placeholder="ফোনে আসা বিকাশ/নগদ/রকেটের পুরো মেসেজটি এখানে পেস্ট করুন..."></textarea>
+                    <button class="flat-btn w-full" onclick="parseAndSyncRawSms()">
+                        <i class="fas fa-magic mr-1"></i> পার্স করে ফায়ারবেসে সেভ করুন
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <h3 class="text-xl font-bold text-white">XNXANIKPAY SMS Logs</h3>
+                        <div class="relative w-full md:w-80">
+                            <input type="text" id="sms-search" placeholder="Search by TrxID, sender, amount..." class="flat-input pl-10" onkeyup="filterSmsLogs()">
+                            <i class="fas fa-search absolute left-3 top-4 text-gray-400"></i>
+                        </div>
+                    </div>
+                    <div class="space-y-3" id="sms-log-list">
+                        <div class="text-center py-10 text-gray-400">Loading SMS logs...</div>
+                    </div>
                 </div>
             </div>
 
@@ -711,44 +929,153 @@
             if(viewId === 'tutorials') loadTutorials();
             if(viewId === 'banners') loadBanners();
             if(viewId === 'onesignal') loadOneSignalConfigAdmin();
+            if(viewId === 'reader-device') updateReaderLiveIndicator();
+            if(viewId === 'sms-cleaner') loadSmsLogs();
         }
 
         // ==========================================
-        // 🔔 ONESIGNAL ADMIN CONTROLLER & LIVE ORDER SOUND
+        // 🔔 ONESIGNAL ADMIN CONTROLLER (SEPARATE ADMIN & USER SLOTS)
         // ==========================================
-        let oneSignalSettings = { app_id: '', rest_api_key: '' };
+        let oneSignalSettings = { 
+            app_id: '', 
+            rest_api_key: '',
+            admin_app_id: '',
+            admin_rest_api_key: '',
+            auto_order_push: true,
+            auto_deposit_push: true
+        };
+
+        let isAdminOneSignalInit = false;
+        function initAdminOneSignalEngine() {
+            const adminId = oneSignalSettings.admin_app_id || oneSignalSettings.app_id;
+            if (!adminId || isAdminOneSignalInit) return;
+            isAdminOneSignalInit = true;
+
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push(async function(OneSignal) {
+                try {
+                    await OneSignal.init({
+                        appId: adminId,
+                        allowLocalhostAsSecureOrigin: true,
+                        notifyButton: { enable: false }
+                    });
+                    await OneSignal.login("admin_device");
+                    OneSignal.User.addTag("role", "admin");
+                } catch(e) {
+                    console.warn("Admin OneSignal SDK Init:", e);
+                }
+            });
+        }
 
         function loadOneSignalConfigAdmin() {
             db.collection('settings').doc('onesignal').get().then(doc => {
                 if (doc.exists) {
-                    oneSignalSettings = doc.data();
+                    oneSignalSettings = { ...oneSignalSettings, ...doc.data() };
+                    
+                    // কাস্টমার স্লট
                     if(document.getElementById('os-app-id')) document.getElementById('os-app-id').value = oneSignalSettings.app_id || '';
                     if(document.getElementById('os-rest-api-key')) document.getElementById('os-rest-api-key').value = oneSignalSettings.rest_api_key || '';
+
+                    // অ্যাডমিন স্লট
+                    if(document.getElementById('os-admin-app-id')) document.getElementById('os-admin-app-id').value = oneSignalSettings.admin_app_id || '';
+                    if(document.getElementById('os-admin-rest-api-key')) document.getElementById('os-admin-rest-api-key').value = oneSignalSettings.admin_rest_api_key || '';
+                    if(document.getElementById('os-auto-order')) document.getElementById('os-auto-order').checked = oneSignalSettings.auto_order_push !== false;
+                    if(document.getElementById('os-auto-deposit')) document.getElementById('os-auto-deposit').checked = oneSignalSettings.auto_deposit_push !== false;
+
+                    initAdminOneSignalEngine();
                 }
             });
         }
 
         function saveOneSignalConfigAdmin() {
-            const appId = document.getElementById('os-app-id').value.trim();
-            const restApiKey = document.getElementById('os-rest-api-key').value.trim();
-
-            if (!appId || !restApiKey) {
-                return Swal.fire('Warning', 'OneSignal App ID and REST API Key are required!', 'warning');
-            }
+            const userAppId = document.getElementById('os-app-id')?.value.trim() || '';
+            const userRestKey = document.getElementById('os-rest-api-key')?.value.trim() || '';
+            const adminAppId = document.getElementById('os-admin-app-id')?.value.trim() || '';
+            const adminRestKey = document.getElementById('os-admin-rest-api-key')?.value.trim() || '';
+            const autoOrder = document.getElementById('os-auto-order')?.checked !== false;
+            const autoDeposit = document.getElementById('os-auto-deposit')?.checked !== false;
 
             showLoading();
             db.collection('settings').doc('onesignal').set({
-                app_id: appId,
-                rest_api_key: restApiKey,
+                app_id: userAppId,
+                rest_api_key: userRestKey,
+                admin_app_id: adminAppId,
+                admin_rest_api_key: adminRestKey,
+                auto_order_push: autoOrder,
+                auto_deposit_push: autoDeposit,
                 updatedAt: new Date()
             }, { merge: true }).then(() => {
                 hideLoading();
-                oneSignalSettings = { app_id: appId, rest_api_key: restApiKey };
-                Swal.fire('Success', 'OneSignal API Settings Saved!', 'success');
+                oneSignalSettings = { 
+                    app_id: userAppId, 
+                    rest_api_key: userRestKey, 
+                    admin_app_id: adminAppId, 
+                    admin_rest_api_key: adminRestKey,
+                    auto_order_push: autoOrder,
+                    auto_deposit_push: autoDeposit
+                };
+                initAdminOneSignalEngine();
+                Swal.fire('Saved!', 'অ্যাডমিন এবং কাস্টমার পুশ সেটিংস সফলভাবে সেভ হয়েছে!', 'success');
             }).catch(err => {
                 hideLoading();
                 Swal.fire('Error', err.message, 'error');
             });
+        }
+
+        // অ্যাডমিন ডিভাইসের পারমিশন চালু করা
+        async function enableAdminDevicePush() {
+            if (!("Notification" in window)) {
+                return Swal.fire('Error', 'এই ডিভাইসে নোটিফিকেশন সাপোর্ট করে না', 'error');
+            }
+
+            try {
+                window.OneSignalDeferred = window.OneSignalDeferred || [];
+                window.OneSignalDeferred.push(async function(OneSignal) {
+                    await OneSignal.Notifications.requestPermission();
+                    await OneSignal.login("admin_device");
+                    OneSignal.User.addTag("role", "admin");
+                });
+
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                    playOrderAlarmSound();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'অ্যাডমিন ডিভাইস সক্রিয়! 🔔',
+                        text: 'এখন এই অ্যাডমিন প্যানেলকে APK বানালেও নতুন অর্ডার ও ডিপোজিট আসলে ফোনে পুশ নোটিফিকেশন আসবে।'
+                    });
+                }
+            } catch(e) {
+                Swal.fire('Error', e.message, 'error');
+            }
+        }
+
+        // অ্যাডমিন ডিভাইসের ব্রাউজার/APK পুশ পারমিশন অন করার ফাংশন
+        async function enableAdminDevicePush() {
+            if (!("Notification" in window)) {
+                return Swal.fire('Error', 'এই ডিভাইসে নোটিফিকেশন সাপোর্ট করে না', 'error');
+            }
+
+            try {
+                window.OneSignalDeferred = window.OneSignalDeferred || [];
+                window.OneSignalDeferred.push(async function(OneSignal) {
+                    await OneSignal.Notifications.requestPermission();
+                    await OneSignal.login("admin_device");
+                    OneSignal.User.addTag("user_role", "admin");
+                });
+
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                    playOrderAlarmSound();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'অ্যাডমিন পুশ সফলভাবে সক্রিয় হয়েছে! 🔔',
+                        text: 'এখন এই ডিভাইসকে APK বানালেও নতুন অর্ডার ও ডিপোজিটের পুশ নোটিফিকেশন পাবেন।'
+                    });
+                }
+            } catch(e) {
+                Swal.fire('Error', e.message, 'error');
+            }
         }
 
         function previewOsImage(url) {
@@ -793,9 +1120,6 @@
             }
             if (url) payload.url = url;
 
-            // ওয়েব এবং মোবাইল উভয় গ্রাহকদের কাছে পাঠাতে সঠিক সেগমেন্ট
-            payload.included_segments = ["Subscribed Users", "Total Subscriptions"];
-
             try {
                 // ব্রাউজারের CORS বাইপাস করার জন্য সরাসরি ফেইল-সেফ হ্যান্ডলার
                 let data = null;
@@ -827,6 +1151,17 @@
                 btn.innerHTML = `<i class="fas fa-bullhorn mr-2"></i> Send Push to All Devices 🚀`;
 
                 if (data && !data.errors) {
+                    // ফায়ারস্টোর নোটিফিকেশন তৈরি (যা APK ইউজারদের ফোনে সাথে সাথে বাজবে)
+                    db.collection('notifications').add({
+                        title: title,
+                        message: message,
+                        image: image || '',
+                        url: url || '',
+                        targetUserId: 'all',
+                        timestamp: new Date().toLocaleString(),
+                        timestampMs: Date.now()
+                    }).catch(console.warn);
+
                     Swal.fire('Success', `সবার ডিভাইসে পুশ নোটিফিকেশন পাঠানো হয়েছে! (Recipients: ${data.recipients || 'All'})`, 'success');
                     document.getElementById('os-push-title').value = '';
                     document.getElementById('os-push-message').value = '';
@@ -843,8 +1178,10 @@
             }
         }
 
-        // লাইভ নতুন অর্ডার আসলে অ্যাডমিন প্যানেলে অ্যালার্ম সাউন্ড বাজবে
+        // লাইভ নতুন অর্ডার ও ডিপোজিটের অ্যালার্ম ও অটো পপ-আপ
         let initialOrderLoad = true;
+        let initialDepositLoad = true;
+
         function playOrderAlarmSound() {
             try {
                 const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
@@ -852,6 +1189,7 @@
             } catch(e){}
         }
 
+        // ১. নতুন অর্ডার মনিটর
         db.collection('orders').orderBy('date', 'desc').limit(1).onSnapshot(snapshot => {
             if (!initialOrderLoad) {
                 snapshot.docChanges().forEach(change => {
@@ -863,8 +1201,8 @@
                             position: 'top-end',
                             icon: 'info',
                             title: `🚨 নতুন অর্ডার এসেছে!`,
-                            text: `${order.gameName || 'Game'} - ৳${order.price || 0}`,
-                            timer: 6000,
+                            text: `${order.gameName || 'Game'} - ৳${order.price || 0} (${order.userName || 'Customer'})`,
+                            timer: 7000,
                             timerProgressBar: true,
                             showConfirmButton: false
                         });
@@ -872,6 +1210,29 @@
                 });
             }
             initialOrderLoad = false;
+        });
+
+        // ২. নতুন ডিপোজিট মনিটর
+        db.collection('deposits').where('status', '==', 'pending').limit(1).onSnapshot(snapshot => {
+            if (!initialDepositLoad) {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === "added") {
+                        const dep = change.doc.data();
+                        playOrderAlarmSound();
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'warning',
+                            title: `💰 নতুন ডিপোজিট রিকোয়েস্ট!`,
+                            text: `${dep.method} - ৳${dep.amount} (TrxID: ${dep.trxId})`,
+                            timer: 7000,
+                            timerProgressBar: true,
+                            showConfirmButton: false
+                        });
+                    }
+                });
+            }
+            initialDepositLoad = false;
         });
 
         // অটো সেটিংস লোড
@@ -905,6 +1266,9 @@
                     const d = doc.data();
                     if(document.getElementById('set-sitename')) document.getElementById('set-sitename').value = d.siteName || '';
                     if(document.getElementById('set-logo')) document.getElementById('set-logo').value = d.logoUrl || '';
+                    const themeCol = d.themeColor || '#0284c7';
+                    if(document.getElementById('set-theme-color')) document.getElementById('set-theme-color').value = themeCol;
+                    if(document.getElementById('set-theme-picker')) document.getElementById('set-theme-picker').value = themeCol;
                     if(document.getElementById('set-notice')) document.getElementById('set-notice').value = d.notice || '';
                     if(document.getElementById('set-applink')) document.getElementById('set-applink').value = d.appLink || '';
                     if(document.getElementById('set-whatsapp')) document.getElementById('set-whatsapp').value = d.whatsapp || '';
@@ -940,11 +1304,13 @@
             let p2 = Promise.resolve();
 
             if (type === 'general') {
+                const userThemeColor = (document.getElementById('set-theme-color')?.value || '#0284c7').trim();
                 p1 = db.collection('settings').doc('general').set({
-                    siteName: document.getElementById('set-sitename').value,
-                    logoUrl: document.getElementById('set-logo').value,
-                    notice: document.getElementById('set-notice').value,
-                    appLink: document.getElementById('set-applink').value
+                    siteName: document.getElementById('set-sitename').value.trim(),
+                    logoUrl: document.getElementById('set-logo').value.trim(),
+                    notice: document.getElementById('set-notice').value.trim(),
+                    appLink: document.getElementById('set-applink').value.trim(),
+                    themeColor: userThemeColor
                 }, {merge: true});
             } else if (type === 'social') {
                 p1 = db.collection('settings').doc('general').set({
@@ -1068,8 +1434,11 @@
                     if(currentServiceType === 'code' || currentServiceType === 'auto-topup') {
                         stockBtn = `<button onclick="switchView('stock', '${doc.id}', '${d.name}')" class="flat-btn flat-btn-outline text-xs py-2 px-3 mr-2"><i class="fas fa-key md:mr-1"></i> <span class="hidden md:inline">Stock</span></button>`;
                     }
+                    const noteBadge = d.note ? `<span class="text-xs text-gray-400 block">(${d.note})</span>` : '';
                     list.innerHTML += `<tr>
-                        <td><span class="font-medium text-white">${d.name}</span></td><td class="font-bold text-orange-500">৳${d.price}</td><td>${d.stockCount !== undefined ? d.stockCount : 'N/A'}</td>
+                        <td><span class="font-medium text-white">${d.name}</span> ${noteBadge}</td>
+                        <td class="font-bold text-orange-500">৳${d.price}</td>
+                        <td>${d.stockCount !== undefined ? d.stockCount : (currentServiceType === 'guild-glory' ? 'Active Service' : 'N/A')}</td>
                         <td class="text-center whitespace-nowrap">
                             ${stockBtn}
                             <button onclick="deleteProduct('${doc.id}')" class="flat-btn flat-btn-danger text-xs py-2 px-3"><i class="fas fa-trash"></i></button>
@@ -1080,11 +1449,12 @@
         }
 
         function addProduct() {
-            const name = document.getElementById('prod-name').value;
+            const name = document.getElementById('prod-name').value.trim();
+            const note = document.getElementById('prod-note') ? document.getElementById('prod-note').value.trim() : '';
             const price = parseInt(document.getElementById('prod-price').value);
-            if(!name || !price) return;
+            if(!name || isNaN(price)) return Swal.fire('Error', 'Please enter Name and Price', 'warning');
             
-            const data = {name, price};
+            const data = { name, price, note: note || '' };
             if(currentServiceType === 'code' || currentServiceType === 'auto-topup') {
                 data.stockCount = 0;
             }
@@ -1092,7 +1462,9 @@
             db.collection('services').doc(currentServiceId).collection('products').add(data).then(() => {
                 hideLoading();
                 document.getElementById('prod-name').value = '';
+                if(document.getElementById('prod-note')) document.getElementById('prod-note').value = '';
                 document.getElementById('prod-price').value = '';
+                Swal.fire({ icon: 'success', title: 'প্যাকেজ যোগ হয়েছে!', timer: 1200, showConfirmButton: false });
             }).catch(err => {
                 hideLoading();
                 Swal.fire('Error', err.message, 'error');
@@ -1435,7 +1807,7 @@
             showLoading();
 
             const testOtp = Math.floor(100000 + Math.random() * 900000).toString();
-            const siteTitle = document.getElementById('set-sitename')?.value || "DRL TOPUP";
+            const siteTitle = document.getElementById('set-sitename')?.value || "ST TOPUP";
 
             const postData = {
                 to: [testEmail],
@@ -1465,6 +1837,343 @@
                 Swal.fire('Failed', err.message || 'Failed to trigger Apps Script', 'error');
             }
         }
+
+        // =========================================================================
+        // 📡 TOURNAMENT STYLE LIVE PAYMENT GATEWAY SERVER & READER SYNC ENGINE
+        // =========================================================================
+        let allReaderSms = [];
+        let allSmsLogs = [];
+        let readerHeartbeatData = null;
+
+        // রিডার ফোন হার্টবিট ও লাইভ স্ট্যাটাস মনিটর
+        function listenReaderDeviceRealStatus() {
+            // ১. সরাসরি reader_status/device ডকের হার্টবিট ও সার্ভিস স্টেট লিসেনার
+            db.collection('reader_status').doc('device').onSnapshot(snap => {
+                if (snap.exists) {
+                    readerHeartbeatData = snap.data();
+                } else {
+                    readerHeartbeatData = null;
+                }
+                updateReaderLiveIndicator();
+            }, err => console.warn("Reader status error:", err));
+
+            // ২. XNXANIKPAY কালেকশনের হার্টবিট ও SMS লিসেনার
+            db.collection('XNXANIKPAY').onSnapshot(snapshot => {
+                allReaderSms = [];
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const docId = docSnap.id;
+                    if (docId === 'DEVICE_PING' || data.txid === 'DEVICE_PING' || data.isPing === true) {
+                        readerHeartbeatData = Object.assign({}, readerHeartbeatData || {}, data);
+                    } else {
+                        allReaderSms.push({ id: docId, ...data });
+                    }
+                });
+
+                allReaderSms.sort((a, b) => Number(b.timestamp || b.timestampMs || 0) - Number(a.timestamp || a.timestampMs || 0));
+                allSmsLogs = allReaderSms;
+
+                updateReaderLiveIndicator();
+                renderReaderDeviceLogs(allReaderSms);
+                renderSmsLogs(allReaderSms);
+            }, err => console.warn("Reader SMS error:", err));
+
+            setInterval(updateReaderLiveIndicator, 2000);
+        }
+
+        window.triggerReaderPingTest = function() {
+            updateReaderLiveIndicator();
+            Swal.fire({
+                icon: 'info',
+                title: 'হার্টবিট সিঙ্ক করা হয়েছে',
+                text: 'সার্ভারের সর্বশেষ সংযোগ চেক করা হয়েছে।',
+                timer: 900,
+                showConfirmButton: false
+            });
+        };
+
+        function updateReaderLiveIndicator() {
+            const stateBadge = document.getElementById('reader-working-state-badge');
+            const modelText = document.getElementById('reader-phone-model-text');
+            const batteryText = document.getElementById('reader-phone-battery-text');
+            const osText = document.getElementById('reader-android-ver-text');
+            const netText = document.getElementById('reader-network-type-text');
+            const lastSeenText = document.getElementById('reader-last-seen-text');
+            const dashBadge = document.getElementById('dash-reader-badge');
+            const dashDot = document.getElementById('dash-reader-dot');
+            const dashModel = document.getElementById('dash-reader-model');
+            const totalCount = document.getElementById('reader-total-sms-count');
+            const todayCount = document.getElementById('reader-today-sms-count');
+            const dashTodaySms = document.getElementById('dash-today-sms');
+
+            if (totalCount) totalCount.innerText = allReaderSms.length;
+
+            const todayStart = new Date().setHours(0,0,0,0);
+            const todayTotal = allReaderSms.filter(s => {
+                let t = Number(s.timestamp || s.timestampMs || 0);
+                if (t > 0 && t < 10000000000) t = t * 1000;
+                return t >= todayStart;
+            }).length;
+
+            if (todayCount) todayCount.innerText = todayTotal;
+            if (dashTodaySms) dashTodaySms.innerText = todayTotal;
+
+            const now = Date.now();
+            let rawTime = 0;
+            let realModel = "";
+            let realBattery = null;
+            let realOs = "";
+            let realNet = "";
+
+            if (readerHeartbeatData) {
+                rawTime = Number(readerHeartbeatData.lastSeen || readerHeartbeatData.lastPing || readerHeartbeatData.timestampMs || readerHeartbeatData.timestamp || 0);
+                realModel = readerHeartbeatData.deviceModel || readerHeartbeatData.model || "";
+                realBattery = readerHeartbeatData.battery !== undefined ? readerHeartbeatData.battery : null;
+                realOs = readerHeartbeatData.androidVersion || readerHeartbeatData.os || "";
+                realNet = readerHeartbeatData.network || "";
+            }
+
+            if (rawTime > 0 && rawTime < 10000000000) rawTime = rawTime * 1000;
+            const diffSec = rawTime > 0 ? Math.floor((now - rawTime) / 1000) : 999999;
+            const isOnline = rawTime > 0 && diffSec <= 90;
+
+            if (modelText) modelText.innerText = realModel || (isOnline ? "Android Gateway Device" : "কোনো ডিভাইস কানেক্টেড নেই");
+            if (dashModel) dashModel.innerText = `ডিভাইস: ${realModel || 'Android Node'} | অটো পেমেন্ট সিঙ্ক সক্রিয়`;
+
+            if (batteryText) {
+                if (realBattery !== null && isOnline) {
+                    batteryText.classList.remove('hidden');
+                    batteryText.innerText = `🔋 ${realBattery}% চার্জ`;
+                } else {
+                    batteryText.classList.add('hidden');
+                }
+            }
+
+            if (osText) osText.innerHTML = realOs ? `<i class="fab fa-android mr-1"></i> ${realOs}` : `<i class="fab fa-android mr-1"></i> OS: N/A`;
+            if (netText) netText.innerHTML = isOnline ? `<i class="fas fa-wifi mr-1"></i> Net: ${realNet || 'Online'}` : `<i class="fas fa-times-circle mr-1"></i> Disconnected`;
+
+            if (isOnline) {
+                const timeText = diffSec <= 5 ? "এইমাত্র (সরাসরি সিঙ্কড)" : `${diffSec} সেকেন্ড আগে`;
+                if (stateBadge) {
+                    stateBadge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                    stateBadge.innerText = "🟢 সার্ভার অনলাইন (Active)";
+                }
+                if (lastSeenText) lastSeenText.innerHTML = `<span class="text-emerald-400 font-bold">${timeText}</span>`;
+                if (dashBadge) {
+                    dashBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                    dashBadge.innerText = "অনলাইন ও সক্রিয়";
+                }
+                if (dashDot) {
+                    dashDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] inline-block";
+                }
+            } else {
+                let offlineTime = rawTime > 0 ? `${Math.floor(diffSec / 60)} মিনিট আগে` : "কখনো সংযোগ হয়নি";
+                if (stateBadge) {
+                    stateBadge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase bg-red-500/20 text-red-400 border border-red-500/30";
+                    stateBadge.innerText = "🔴 সার্ভার অফলাইন (Disconnected)";
+                }
+                if (lastSeenText) lastSeenText.innerHTML = `<span class="text-red-400 font-bold">${offlineTime}</span>`;
+                if (dashBadge) {
+                    dashBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-red-500/20 text-red-300 border border-red-500/30";
+                    dashBadge.innerText = "অফলাইন";
+                }
+                if (dashDot) {
+                    dashDot.className = "w-2.5 h-2.5 rounded-full bg-red-400 shadow-[0_0_8px_#f87171] inline-block";
+                }
+            }
+        }
+
+        function renderReaderDeviceLogs(logs) {
+            const list = document.getElementById('reader-device-log-list');
+            if (!list) return;
+            if (logs.length === 0) {
+                list.innerHTML = `<div class="text-center py-10 text-gray-400">রিডার অ্যাপ থেকে এখনো কোনো SMS আসেনি।</div>`;
+                return;
+            }
+            list.innerHTML = "";
+            logs.forEach(sms => {
+                const trxId = sms.txid || sms.trxId || sms.id || 'N/A';
+                const amt = sms.amount !== undefined ? sms.amount : '0';
+                const sender = sms.sender || sms.phone || 'N/A';
+                const rawMsg = sms.sms || sms.msg || '';
+                const method = (sms.method || 'MFS').toUpperCase();
+                const timeStr = sms.timestamp ? new Date(Number(sms.timestamp)).toLocaleString() : 'N/A';
+
+                list.innerHTML += `
+                <div class="bg-dark-bg p-4 rounded-xl border border-dark-border flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded text-xs font-bold uppercase bg-orange-500/10 text-orange-400 border border-orange-500/30">${method}</span>
+                            <span class="text-emerald-400 font-bold text-base">৳${amt}</span>
+                            <span class="text-xs text-gray-400">TrxID: <b class="font-mono text-white select-all">${trxId}</b></span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">প্রেরক: ${sender} | সময়: ${timeStr}</p>
+                        ${rawMsg ? `<p class="text-xs text-gray-500 mt-1 bg-[#121214] p-2 rounded break-all border border-dark-border">${rawMsg}</p>` : ''}
+                    </div>
+                    <button onclick="navigator.clipboard.writeText('${trxId}'); Swal.fire({ toast: true, icon: 'success', title: 'কপি হয়েছে!', timer: 1000, showConfirmButton: false, position: 'top-end' })" class="flat-btn-outline text-xs py-1.5 px-3">
+                        <i class="far fa-copy mr-1"></i> Copy Trx
+                    </button>
+                </div>`;
+            });
+        }
+
+        window.filterReaderDeviceLogs = () => {
+            const q = document.getElementById('reader-sms-search')?.value.toLowerCase() || '';
+            const filtered = allReaderSms.filter(s => {
+                const trx = String(s.txid || s.trxId || '').toLowerCase();
+                const sender = String(s.sender || '').toLowerCase();
+                const amt = String(s.amount || '');
+                return trx.includes(q) || sender.includes(q) || amt.includes(q);
+            });
+            renderReaderDeviceLogs(filtered);
+        };
+
+        // --- SMS CLEANER & RAW PARSER FUNCTIONS ---
+        function loadSmsLogs() {
+            renderSmsLogs(allSmsLogs);
+        }
+
+        function renderSmsLogs(logs) {
+            const list = document.getElementById('sms-log-list');
+            if(!list) return;
+            if(logs.length === 0) {
+                list.innerHTML = `<div class="text-center py-10 text-gray-400">কোনো SMS ডাটা নেই (ডাটাবেস ক্লিন)</div>`;
+                return;
+            }
+            list.innerHTML = "";
+            logs.forEach(sms => {
+                const trxId = sms.txid || sms.trxId || sms.id || 'N/A';
+                const amt = sms.amount !== undefined ? sms.amount : '0';
+                const sender = sms.sender || sms.phone || 'N/A';
+                const rawMsg = sms.sms || sms.msg || '';
+                const method = (sms.method || 'MFS').toUpperCase();
+
+                list.innerHTML += `
+                <div class="bg-dark-bg p-4 rounded-xl border border-dark-border flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded text-xs font-bold uppercase bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">${method}</span>
+                            <span class="text-emerald-400 font-bold text-base">৳${amt}</span>
+                            <span class="text-xs text-gray-400">TrxID: <b class="font-mono text-white select-all">${trxId}</b></span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">প্রেরক: ${sender}</p>
+                        ${rawMsg ? `<p class="text-xs text-gray-500 mt-1 bg-[#121214] p-2 rounded break-all border border-dark-border">${rawMsg}</p>` : ''}
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="navigator.clipboard.writeText('${trxId}'); Swal.fire({ toast: true, icon: 'success', title: 'TrxID Copied!', timer: 1000, showConfirmButton: false, position: 'top-end' })" class="flat-btn-outline text-xs py-1.5 px-3">
+                            <i class="far fa-copy mr-1"></i> Copy
+                        </button>
+                        <button onclick="deleteSingleSms('${sms.id}')" class="flat-btn flat-btn-danger text-xs py-1.5 px-3">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        window.filterSmsLogs = () => {
+            const q = document.getElementById('sms-search')?.value.toLowerCase() || '';
+            const filtered = allSmsLogs.filter(s => {
+                const trx = String(s.txid || s.trxId || '').toLowerCase();
+                const sender = String(s.sender || '').toLowerCase();
+                const amt = String(s.amount || '');
+                return trx.includes(q) || sender.includes(q) || amt.includes(q);
+            });
+            renderSmsLogs(filtered);
+        };
+
+        window.deleteSingleSms = function(docId) {
+            db.collection('XNXANIKPAY').doc(docId).delete().then(() => {
+                Swal.fire({ toast: true, icon: 'success', title: 'SMS মুছে ফেলা হয়েছে!', timer: 800, showConfirmButton: false, position: 'top-end' });
+            });
+        };
+
+        window.deleteAllSmsLogs = function() {
+            if(allSmsLogs.length === 0) return Swal.fire('নোটিস', 'কোনো SMS নেই!', 'info');
+            Swal.fire({
+                title: 'সকল SMS ডিলিট করবেন?',
+                text: `মোট ${allSmsLogs.length}টি SMS পার্মানেন্টলি ডিলিট হবে।`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#DC2626',
+                confirmButtonText: 'হ্যাঁ, সব মুছুন'
+            }).then(r => {
+                if(r.isConfirmed) {
+                    const batch = db.batch();
+                    allSmsLogs.forEach(s => batch.delete(db.collection('XNXANIKPAY').doc(s.id)));
+                    batch.commit().then(() => {
+                        Swal.fire('Deleted!', 'সকল SMS মুছে ফেলা হয়েছে!', 'success');
+                    });
+                }
+            });
+        };
+
+        window.checkReaderSyncHealth = function() {
+            Swal.fire({
+                icon: 'success',
+                title: 'রিডার অ্যাপ কানেক্টেড! 🟢',
+                html: `মোট সিঙ্কড SMS: <b>${allSmsLogs.length} টি</b><br>ডাটাবেস পাথ: <code>XNXANIKPAY</code>`,
+                confirmButtonColor: '#F49E0B'
+            });
+        };
+
+        window.parseAndSyncRawSms = function() {
+            const rawText = document.getElementById('quick-raw-sms-input').value.trim();
+            if(!rawText) return Swal.fire('সতর্কতা', 'মেসেজটি পেস্ট করুন!', 'warning');
+
+            let provider = 'mfs';
+            let trxId = '';
+            let amount = 0;
+            let sender = 'Customer';
+
+            const bkashMatch = rawText.match(/(?:Tk|BDT)\s*([0-9,.]+)\s+from\s+([0-9A-Za-z+]+).*?(?:TrxID|TxnId)\s+([A-Za-z0-9]+)/i);
+            const nagadMatch = rawText.match(/Amount:\s*(?:Tk|BDT)?\s*([0-9,.]+).*?Sender:\s*([0-9A-Za-z+]+).*?(?:TxnID|TrxID):\s*([A-Za-z0-9]+)/i);
+            const rocketMatch = rawText.match(/Received\s+(?:Tk\.?|BDT)\s*([0-9,.]+)\s+from\s+([0-9A-Za-z+]+).*?(?:TxnId|TxnID|TrxID):\s*([A-Za-z0-9]+)/i);
+
+            if(bkashMatch) {
+                provider = 'bkash';
+                amount = parseFloat(bkashMatch[1].replace(/,/g, '')) || 0;
+                sender = bkashMatch[2];
+                trxId = bkashMatch[3].toUpperCase();
+            } else if(nagadMatch) {
+                provider = 'nagad';
+                amount = parseFloat(nagadMatch[1].replace(/,/g, '')) || 0;
+                sender = nagadMatch[2];
+                trxId = nagadMatch[3].toUpperCase();
+            } else if(rocketMatch) {
+                provider = 'rocket';
+                amount = parseFloat(rocketMatch[1].replace(/,/g, '')) || 0;
+                sender = rocketMatch[2];
+                trxId = rocketMatch[3].toUpperCase();
+            } else {
+                const genTrx = rawText.match(/(?:TrxID|TxnID|TxnId)[:\s]+([A-Za-z0-9]+)/i);
+                if(genTrx) trxId = genTrx[1].toUpperCase();
+            }
+
+            if(!trxId) return Swal.fire('ব্যর্থ', 'মেসেজ থেকে কোনো TrxID পাওয়া যায়নি!', 'error');
+
+            showLoading();
+            db.collection('XNXANIKPAY').doc(trxId).set({
+                txid: trxId,
+                trxId: trxId,
+                amount: amount,
+                method: provider,
+                sender: sender,
+                sms: rawText,
+                timestamp: String(Date.now()),
+                timestampMs: Date.now()
+            }).then(() => {
+                hideLoading();
+                document.getElementById('quick-raw-sms-input').value = '';
+                Swal.fire('Saved!', `<b>${provider.toUpperCase()}</b> পেমেন্ট সেভ হয়েছে!<br>টাকা: ৳${amount} | TrxID: <code>${trxId}</code>`, 'success');
+            }).catch(e => {
+                hideLoading();
+                Swal.fire('Error', e.message, 'error');
+            });
+        };
+
+        // ইনিশিয়ালাইজেশন
+        listenReaderDeviceRealStatus();
     </script>
 </body>
 </html>
