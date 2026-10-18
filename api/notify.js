@@ -18,12 +18,12 @@ export default async function handler(req, res) {
   try {
     const { action, title, message, data, image, url, apiKey, appId } = req.body;
 
-    const ONESIGNAL_APP_ID = appId || "7398e8c1-9373-4680-bc63-27c413779609";
+    const ONESIGNAL_APP_ID = appId || "f02ea885-f5f3-4c5e-9baa-d91066b14653";
     const ONESIGNAL_REST_KEY = apiKey;
 
     if (!ONESIGNAL_REST_KEY) {
       return res.status(400).json({ 
-        error: 'REST API Key পাওয়া যায়নি! অ্যাডমিন প্যানেল থেকে REST API Key সেভ করুন।' 
+        error: 'REST API Key পাওয়া যায়নি! অ্যাডমিন প্যানেলে REST API Key সেভ করুন।' 
       });
     }
 
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       };
       payload.data = { type: 'admin_deposit', trxId: data.trxId || '' };
     }
-    // ৩. কাস্টমার ব্রডকাস্ট (ইউজারদের জন্য)
+    // ৩. কাস্টমার ব্রডকাস্ট (সব সাধারণ ইউজারদের জন্য)
     else if (action === 'broadcast_customer') {
       payload.filters = [{ field: "tag", key: "role", relation: "!=", value: "admin" }];
     }
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     else if (action === 'test_admin') {
       payload.filters = [{ field: "tag", key: "role", relation: "=", value: "admin" }];
       payload.headings = { en: "🔔 অ্যাডমিন এলার্ট টেস্ট" };
-      payload.contents = { en: "আপনার অ্যাডমিন ডিভাইস নোটিফিকেশন পাওয়ার জন্য প্রস্তুত!" };
+      payload.contents = { en: "আপনার অ্যাডমিন ডিভাইস নোটিফিকেশন পাওয়ার জন্য সম্পূর্ণ প্রস্তুত!" };
     }
     // ৫. নির্দিষ্ট সিঙ্গেল ইউজার
     else if (action === 'single_user' && data?.userId) {
@@ -87,6 +87,16 @@ export default async function handler(req, res) {
     });
 
     const responseData = await osResponse.json();
+
+    // যদি কোনো ডিভাইস এখনও রেজিস্টার না হয়ে থাকে
+    if (responseData.errors && Array.isArray(responseData.errors)) {
+      if (responseData.errors.some(err => err.includes("All included players are not subscribed") || err.includes("not subscribed"))) {
+        return res.status(400).json({
+          success: false,
+          error: "কোনো অ্যাডমিন ফোন এখনও যুক্ত হয়নি! আগে 'বর্তমান ফোনটি অ্যাডমিন হিসেবে রেজিস্টার করুন' বাটনে ক্লিক করে নোটিফিকেশন Allow করুন।"
+        });
+      }
+    }
 
     if (!osResponse.ok || responseData.errors) {
       return res.status(osResponse.status || 400).json({ 
