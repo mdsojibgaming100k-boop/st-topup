@@ -1036,62 +1036,13 @@
     let selectedGameId = null;
     let selectedGameName = "";
 
-    // ==========================================
-    // 🔔 HYBRID TOURNAMENT-GRADE PUSH ENGINE (FOR APK & WEB)
-    // ==========================================
-    let userOneSignalAppId = "f02ea885-f5f3-4c5e-9baa-d91066b14653";
-    let adminOneSignalAppId = "";
-    let adminOneSignalApiKey = "";
-    let autoPushSettings = { order_push: true, deposit_push: true };
+    // =========================================================================
+    // 🔔 TOUR FF EXACT LIVE PUSH NOTIFICATION ENGINE (PURE PUSH - NO VOICE)
+    // =========================================================================
+    let userOneSignalAppId = "7398e8c1-9373-4680-bc63-27c413779609";
+    let isOneSignalInitialized = false;
 
-    // ১. ডিভাইসে সরাসরি নোটিফিকেশন ট্রিগার ব্রিজ (APK ও Web-এ ডেডলক মুক্ত ও সক্রিয়)
-    function fireDevicePushNotification(title, message, notifId, bannerImg = '') {
-        if (!("Notification" in window) || Notification.permission !== "granted") return;
-
-        const notifOptions = {
-            body: message,
-            icon: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
-            badge: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
-            vibrate: [250, 100, 250, 100, 250],
-            tag: 'drl-notif-' + (notifId || Date.now()),
-            renotify: true,
-            data: { url: window.location.href }
-        };
-
-        if (bannerImg && bannerImg.trim() !== '') {
-            notifOptions.image = bannerImg.trim();
-        }
-
-        let notificationFired = false;
-
-        // Service Worker সক্রিয় থাকলে তার মাধ্যমে ব্যাকগ্রাউন্ডে প্রদর্শন
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            try {
-                navigator.serviceWorker.getRegistration().then(reg => {
-                    if (reg && reg.showNotification) {
-                        reg.showNotification(title, notifOptions);
-                        notificationFired = true;
-                    } else if (!notificationFired) {
-                        new Notification(title, notifOptions);
-                    }
-                }).catch(() => {
-                    if (!notificationFired) {
-                        try { new Notification(title, notifOptions); } catch(e) {}
-                    }
-                });
-                return;
-            } catch(e) {}
-        }
-
-        // ইনস্ট্যান্ট ডিরেক্ট ফলব্যাক (মোবাইল ব্রাউজার / WebView / APK তে সাথে সাথে ব্যানার শো করবে)
-        try {
-            new Notification(title, notifOptions);
-        } catch(e) {
-            console.warn("Direct notification fallback:", e);
-        }
-    }
-
-    // ২. নোটিফিকেশন সাউন্ড বাজানোর ফাংশন
+    // ১. সাউন্ড সিন্থেসাইজার (মিষ্টি নোটিফিকেশন চিম সাউন্ড)
     function playNotificationChime() {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1111,28 +1062,68 @@
         } catch(e) {}
     }
 
-    // ৩. লাইভ ফায়ারস্টোর লিসেনার (অ্যাডমিনের পুশ সাথে সাথে ইউজার ডিভাইসে ডেলিভারি)
+    // ২. ডিভাইসে ছবি ও ব্যানার সহ ১০০% নির্ভরযোগ্য পুশ প্রদর্শন (APK ও Web)
+    function fireDevicePushNotification(title, message, notifId, bannerImg = '') {
+        if (!("Notification" in window)) return;
+        
+        // পারমিশন না থাকলে পারমিশন নিয়ে নেওয়া
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+            return;
+        }
+
+        const notifOptions = {
+            body: message,
+            icon: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
+            badge: document.getElementById('header-logo-img')?.src || "https://placehold.co/150",
+            vibrate: [300, 100, 300, 100, 300],
+            tag: 'topup-notif-' + (notifId || Date.now()),
+            renotify: true,
+            data: { url: window.location.href }
+        };
+
+        if (bannerImg && bannerImg.trim() !== '') {
+            notifOptions.image = bannerImg.trim();
+        }
+
+        // সরাসরি সিস্টেম নোটিফিকেশন ট্রিগার (Android APK ও ব্রাউজারে সাথে সাথে নোটিফিকেশন ড্রয়ারে শো করবে)
+        try {
+            new Notification(title, notifOptions);
+        } catch(e) {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration().then(reg => {
+                    if (reg && reg.showNotification) {
+                        reg.showNotification(title, notifOptions);
+                    }
+                }).catch(()=>{});
+            }
+        }
+    }
+
+    // ৩. লাইভ ফায়ারস্টোর লিসেনার (অ্যাডমিন প্যানেল থেকে পাঠানো নোটিফিকেশন সরাসরি ইউজারের ফোনে শো হবে)
     function listenRealtimeNotifications() {
         db.collection('notifications').onSnapshot(snapshot => {
-            const pushedKey = currentUser ? `drl_pushed_${currentUser.uid}` : 'drl_pushed_guest';
+            const pushedKey = currentUser ? `topup_pushed_${currentUser.uid}` : 'topup_pushed_guest';
             let pushedIds = JSON.parse(localStorage.getItem(pushedKey) || '[]');
             let hasNew = false;
 
             snapshot.docChanges().forEach(change => {
                 if (change.type === "added") {
                     const n = { id: change.doc.id, ...change.doc.data() };
-                    // ফিল্টার: অ্যাডমিনের অভ্যন্তরীণ অর্ডার অ্যালার্ট যেন ইউজার অ্যাপে না আসে
+                    // অ্যাডমিনের অভ্যন্তরীণ অর্ডার অ্যালার্ট যেন সাধারণ ইউজারের ফোনে না যায়
                     if (n.targetRole === 'admin' || n.isAdminAlert === true) return;
 
-                    // ইউজার চেক (সকল গ্রাহক অথবা নির্দিষ্ট ইউজার)
+                    // সকল ইউজার অথবা নির্দিষ্ট ইউজার চেক
                     if (!n.targetUserId || n.targetUserId === 'all' || (currentUser && n.targetUserId === currentUser.uid)) {
                         if (!pushedIds.includes(n.id)) {
-                            const nTitle = n.title || 'DRL TOPUP Notice';
+                            const nTitle = n.title || 'Notification';
                             const nMsg = n.message || n.body || '';
-                            fireDevicePushNotification(nTitle, nMsg, n.id, n.image || '');
+                            const nImg = n.image || n.imageUrl || '';
 
-                            // অ্যাপ ওপেন থাকলে স্ক্রিনের উপরে লাইভ টোস্ট পপআপ
-                            if (typeof Swal !== 'undefined' && Swal.isVisible && !Swal.isVisible()) {
+                            fireDevicePushNotification(nTitle, nMsg, n.id, nImg);
+
+                            // স্ক্রিনে অ্যাপ খোলা থাকলে ওপরের ডানপাশে লাইভ টোস্ট পপ-আপ
+                            if (typeof Swal !== 'undefined') {
                                 Swal.fire({
                                     toast: true,
                                     position: 'top-end',
@@ -1157,16 +1148,12 @@
         });
     }
 
-    let isOneSignalInitialized = false;
+    // ৪. OneSignal Engine ইনিশিয়ালাইজার (TOUR FF-এর মতো সরাসরি অ্যাক্টিভ)
     function initOneSignalEngine() {
         db.collection('settings').doc('onesignal').onSnapshot(doc => {
             if(doc.exists) {
                 const d = doc.data();
                 if (d.app_id && d.app_id.trim()) userOneSignalAppId = d.app_id.trim();
-                if (d.admin_app_id && d.admin_app_id.trim()) adminOneSignalAppId = d.admin_app_id.trim();
-                if (d.admin_rest_api_key && d.admin_rest_api_key.trim()) adminOneSignalApiKey = d.admin_rest_api_key.trim();
-                autoPushSettings.order_push = d.auto_order_push !== false;
-                autoPushSettings.deposit_push = d.auto_deposit_push !== false;
 
                 if (!isOneSignalInitialized && userOneSignalAppId) {
                     isOneSignalInitialized = true;
@@ -1178,78 +1165,37 @@
                                 allowLocalhostAsSecureOrigin: true,
                                 notifyButton: { enable: false }
                             });
-                            // নিশ্চিত করা যে এই ডিভাইসে অ্যাডমিনের কোনো ট্যাগ থাকবে না
+                            // নিশ্চিত করা যে সাধারণ ইউজার কখনই অ্যাডমিন হিসেবে গণ্য হবে না
                             await OneSignal.User.removeTag("role");
                             await OneSignal.User.removeTag("user_role");
                             await OneSignal.User.addTag("user_role", "customer");
                         } catch(e) {
-                            console.warn("User OneSignal Init:", e);
+                            console.warn("OneSignal Webview Init:", e);
                         }
                     });
                 }
             }
         });
 
-        checkAndShowPushPermissionModal();
+        // ব্রাউজারে নোটিফিকেশন পারমিশন চাওয়া
+        setTimeout(() => {
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        playNotificationChime();
+                        if (window.OneSignalDeferred) {
+                            window.OneSignalDeferred.push(async function(OneSignal) {
+                                try { await OneSignal.Notifications.requestPermission(); } catch(e){}
+                            });
+                        }
+                    }
+                });
+            }
+        }, 2000);
+
         listenRealtimeNotifications();
     }
     initOneSignalEngine();
-
-    function checkAndShowPushPermissionModal() {
-        if (!("Notification" in window)) return;
-        if (Notification.permission === "granted") return;
-
-        const hasDismissed = sessionStorage.getItem('drl_push_dismissed');
-        if (hasDismissed) return;
-
-        setTimeout(() => {
-            const modal = document.getElementById('push-permission-popup');
-            if (modal) {
-                modal.classList.remove('hidden');
-                const audio = document.getElementById('pushPermissionVoiceAudio');
-                if (audio) audio.play().catch(() => {});
-            }
-        }, 1500);
-    }
-
-    function dismissPushPermissionPopup() {
-        const modal = document.getElementById('push-permission-popup');
-        if (modal) modal.classList.add('hidden');
-        sessionStorage.setItem('drl_push_dismissed', 'true');
-    }
-
-    async function requestWebPushPermission() {
-        dismissPushPermissionPopup();
-
-        if (!("Notification" in window)) {
-            return Swal.fire('বিজ্ঞপ্তি', 'আপনার ডিভাইসে নোটিফিকেশন সাপোর্ট পাওয়া যায়নি', 'info');
-        }
-
-        try {
-            window.OneSignalDeferred = window.OneSignalDeferred || [];
-            window.OneSignalDeferred.push(async function(OneSignal) {
-                await OneSignal.Notifications.requestPermission();
-                if (currentUser) {
-                    await OneSignal.login(currentUser.uid);
-                }
-            });
-
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-                playNotificationChime();
-                fireDevicePushNotification("নোটিফিকেশন সক্রিয় হয়েছে! 🔔", "এখন থেকে সব অর্ডার আপডেট ও অফার আপনার ডিভাইসে সরাসরি পাবেন।");
-                Swal.fire({
-                    icon: 'success',
-                    title: 'নোটিফিকেশন সক্রিয় হয়েছে! 🔔',
-                    text: 'এখন থেকে সব অর্ডার আপডেট সরাসরি পাবেন।',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }
-        } catch(err) {
-            console.warn("Permission request error:", err);
-        }
-    }
 
     // 👑 নির্ভরযোগ্য মাল্টি-গেটওয়ে দিয়ে OneSignal রিকোয়েস্ট পাঠানো
     async function executeOneSignalPost(payload, apiKey) {
@@ -1281,11 +1227,13 @@
         throw lastErr || new Error("Push sending failed");
     }
 
-    // 👑 শুধুমাত্র অ্যাডমিনের ফোনে অর্ডার নোটিফিকেশন পাঠানোর ফাংশন (১০০% সুরক্ষিত)
+    // 👑 শুধুমাত্র অ্যাডমিন ডিভাইসের জন্য অর্ডার অ্যালার্ট (কাস্টমারদের কাছে যাওয়া ১০০% ব্লক)
     async function notifyAdminNewOrder(title, message, type = 'order') {
         if (type === 'order' && autoPushSettings.order_push === false) return;
         if (type === 'deposit' && autoPushSettings.deposit_push === false) return;
 
+        // অ্যাডমিন প্যানেল নিজে সরাসরি Firestore orders/deposits দিয়ে লাইভ অ্যালার্ট পায়
+        // OneSignal দিয়ে পাঠালে শুধুমাত্র 'admin_device' এক্সটার্নাল আইডি টার্গেট করবে
         const targetApiKey = adminOneSignalApiKey;
         const targetAppId = adminOneSignalAppId || userOneSignalAppId;
         if (!targetApiKey || !targetAppId) return;
@@ -1294,16 +1242,10 @@
             app_id: targetAppId,
             headings: { en: title },
             contents: { en: message },
-            data: { type: type, timestamp: Date.now() }
+            // কঠোর ফিল্টার: সাধারণ কোনো গ্রাহকের ফোনে এই মেসেজ যাবে না
+            include_aliases: { external_id: ["admin_device"] },
+            target_channel: "push"
         };
-
-        // গুরুত্বপূর্ণ: সাধারণ গ্রাহকদের কখনোই এই নোটিফিকেশন পাঠানো যাবে না
-        // শুধুমাত্র যে ডিভাইসে 'admin' ট্যাগ বা লগইন রয়েছে কেবল সেই ডিভাইসেই যাবে
-        payload.filters = [
-            { field: "tag", key: "user_role", relation: "=", value: "admin" },
-            { operator: "OR" },
-            { field: "tag", key: "role", relation: "=", value: "admin" }
-        ];
 
         try {
             await executeOneSignalPost(payload, targetApiKey);
