@@ -23,13 +23,13 @@ export default async function handler(req, res) {
 
     if (!ONESIGNAL_REST_KEY) {
       return res.status(400).json({ 
-        error: 'REST API Key পাওয়া যায়নি! অ্যাডমিন প্যানেলে REST API Key সেভ করুন।' 
+        error: 'REST API Key পাওয়া যায়নি! অ্যাডমিন প্যানেল থেকে REST API Key দিন।' 
       });
     }
 
     let payload = {
       app_id: ONESIGNAL_APP_ID,
-      headings: { en: title || "New Alert" },
+      headings: { en: title || "New Notification" },
       contents: { en: message || "" },
       data: data || {}
     };
@@ -43,8 +43,19 @@ export default async function handler(req, res) {
       payload.url = url;
     }
 
-    // ১. নতুন অর্ডার এলার্ট (শুধুমাত্র অ্যাডমিন ফোনে যাবে)
-    if (action === 'new_order') {
+    // ১. কাস্টমার ব্রডকাস্ট (সকল ইউজারদের কাছে পাঠানো)
+    if (action === 'broadcast_customer') {
+      payload.included_segments = ["Total Subscriptions"];
+    }
+
+    // ২. নির্দিষ্ট সিঙ্গেল ইউজার
+    else if (action === 'single_user' && data?.userId) {
+      payload.include_aliases = { external_id: [data.userId] };
+      payload.target_channel = "push";
+    }
+
+    // ৩. নতুন অর্ডার এলার্ট (শুধুমাত্র অ্যাডমিন ফোনে যাবে)
+    else if (action === 'new_order') {
       payload.filters = [{ field: "tag", key: "role", relation: "=", value: "admin" }];
       payload.headings = { en: "🛒 নতুন অর্ডার এসেছে!" };
       payload.contents = { 
@@ -52,7 +63,8 @@ export default async function handler(req, res) {
       };
       payload.data = { type: 'admin_order', orderId: data.orderId || '' };
     }
-    // ২. ডিপোজিট এলার্ট (শুধুমাত্র অ্যাডমিন ফোনে যাবে)
+
+    // ৪. ডিপোজিট এলার্ট (শুধুমাত্র অ্যাডমিন ফোনে যাবে)
     else if (action === 'new_deposit') {
       payload.filters = [{ field: "tag", key: "role", relation: "=", value: "admin" }];
       payload.headings = { en: "💰 নতুন ডিপোজিট রিকোয়েস্ট!" };
@@ -61,22 +73,15 @@ export default async function handler(req, res) {
       };
       payload.data = { type: 'admin_deposit', trxId: data.trxId || '' };
     }
-    // ৩. কাস্টমার ব্রডকাস্ট (সব সাধারণ ইউজারদের জন্য)
-    else if (action === 'broadcast_customer') {
-      payload.filters = [{ field: "tag", key: "role", relation: "!=", value: "admin" }];
-    }
-    // ৪. অ্যাডমিন টেস্ট নোটিফিকেশন
+
+    // ৫. অ্যাডমিন টেস্ট নোটিফিকেশন
     else if (action === 'test_admin') {
       payload.filters = [{ field: "tag", key: "role", relation: "=", value: "admin" }];
       payload.headings = { en: "🔔 অ্যাডমিন এলার্ট টেস্ট" };
       payload.contents = { en: "আপনার অ্যাডমিন ডিভাইস নোটিফিকেশন পাওয়ার জন্য সম্পূর্ণ প্রস্তুত!" };
     }
-    // ৫. নির্দিষ্ট সিঙ্গেল ইউজার
-    else if (action === 'single_user' && data?.userId) {
-      payload.include_aliases = { external_id: [data.userId] };
-      payload.target_channel = "push";
-    }
 
+    // OneSignal API কল
     const osResponse = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
       headers: {
@@ -88,13 +93,20 @@ export default async function handler(req, res) {
 
     const responseData = await osResponse.json();
 
-    // যদি কোনো ডিভাইস এখনও রেজিস্টার না হয়ে থাকে
+    // সঠিক এরর মেসেজ হ্যান্ডলিং
     if (responseData.errors && Array.isArray(responseData.errors)) {
-      if (responseData.errors.some(err => err.includes("All included players are not subscribed") || err.includes("not subscribed"))) {
-        return res.status(400).json({
-          success: false,
-          error: "কোনো অ্যাডমিন ফোন এখনও যুক্ত হয়নি! আগে 'বর্তমান ফোনটি অ্যাডমিন হিসেবে রেজিস্টার করুন' বাটনে ক্লিক করে নোটিফিকেশন Allow করুন।"
-        });
+      if (responseData.errors.some(err => err.includes("not subscribed") || err.includes("All included players are not subscribed"))) {
+        if (action === 'broadcast_customer') {
+          return res.status(400).json({
+            success: false,
+            error: "আপনার সাইটে এখনও কোনো কাস্টমার নোটিফিকেশন চালু (Allow) করেনি! কোনো ইউজার সাইটে ঢুকে Allow করলেই এই ব্রডকাস্ট সবার ফোনে যাবে।"
+          });
+        } else {
+          return res.status(400).json({
+            success: false,
+            error: "অ্যাডমিন ডিভাইসের ট্যাগ সিঙ্ক হতে কয়েক সেকেন্ড সময় নিচ্ছে। অনুগ্রহ করে ৫ সেকেন্ড পর আবার টেস্ট বাটনে চাপুন।"
+          });
+        }
       }
     }
 
