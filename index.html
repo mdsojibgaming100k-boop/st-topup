@@ -16,7 +16,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
     <style>
         /* Global Font: Poppins for everywhere except Home */
@@ -935,6 +934,11 @@
     const db = defaultApp.firestore();
     const auth = defaultApp.auth();
 
+    // ⚡ ফায়ারস্টোর লোকাল ক্যাশ সক্রিয় (একবার লোড হলে পরেরবার সাথে সাথে ওপেন হবে)
+    db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+        console.warn("Firestore Persistence Error:", err.code);
+    });
+
     // Initialize Secondary Named App for Payment Gateway DB
     const paymentApp = firebase.initializeApp(paymentFirebaseConfig, "paymentGatewayApp");
     const paymentDb = paymentApp.firestore();
@@ -1055,23 +1059,56 @@
             if (doc.exists) {
                 const data = doc.data();
                 const logoUrl = data.logoUrl || "https://placehold.co/150x50?text=No+Logo";
-                const siteName = data.siteName || "Nenox Shop";
+                const siteName = data.siteName || "DRL TOPUP";
                 
                 isAutoPayEnabled = data.autoPayEnabled === true;
                 otpScriptUrl = data.otpScriptUrl || "";
                 otpSenderEmail = data.otpSenderEmail || "support@topup.shop";
                 
-                // document.getElementById('auth-logo-img').src = logoUrl; // Removed in new UI
                 document.getElementById('header-logo-img').src = logoUrl;
                 document.getElementById('about-logo-img').src = logoUrl;
                 document.getElementById('about-site-name').innerText = siteName;
 
-                // Sync logos for new payment UI
                 document.getElementById('step2-logo').src = logoUrl;
                 document.getElementById('step2-center-logo').src = logoUrl;
                 document.getElementById('pay-site-logo-small').src = logoUrl;
-
                 document.title = siteName;
+
+                if(data.notice) document.getElementById('notice-text').innerText = data.notice;
+                const waNum = data.whatsapp ? String(data.whatsapp).replace(/\s/g, '') : "0";
+                const tgLink = data.telegram || "#";
+                const appLink = data.appLink || "#";
+                const fbLink = data.facebook || "#";
+                const ytLink = data.youtube || "#";
+                const waLink = `https://wa.me/${waNum}`;
+
+                const promoContainer = document.getElementById('promo-banner-container');
+                const promoImg = document.getElementById('promo-banner-img');
+                const promoLink = document.getElementById('promo-banner-link');
+                if(data.promoImageUrl && promoContainer && promoImg && promoLink) {
+                    promoImg.src = data.promoImageUrl;
+                    promoLink.href = data.promoImageLink || "#";
+                    promoContainer.classList.remove('hidden');
+                } else if(promoContainer) {
+                    promoContainer.classList.add('hidden');
+                }
+
+                document.getElementById('home-whatsapp').href = waLink;
+                document.getElementById('home-telegram').href = tgLink;
+                
+                const homeAppBtn = document.getElementById('home-app-dl');
+                homeAppBtn.href = appLink;
+                homeAppBtn.onclick = (e) => { if(appLink === "#") { e.preventDefault(); Swal.fire('Notice', 'App coming soon!', 'info'); } };
+
+                document.getElementById('link-whatsapp').href = waLink;
+                document.getElementById('link-telegram').href = tgLink;
+                document.getElementById('about-facebook').href = fbLink;
+                document.getElementById('about-youtube').href = ytLink;
+                document.getElementById('about-telegram').href = tgLink;
+                document.getElementById('about-whatsapp').href = waLink;
+                document.getElementById('contact-whatsapp').href = waLink;
+                document.getElementById('contact-telegram').href = tgLink;
+                document.getElementById('contact-facebook').href = fbLink;
             }
         });
     }
@@ -1617,81 +1654,115 @@
     // --- 3. APP CONTENT & FEATURES ---
 
     function loadAppContent() {
-        db.collection("settings").doc("general").onSnapshot((doc) => {
-            if(doc.exists) {
-                const data = doc.data();
-                if(data.notice) document.getElementById('notice-text').innerText = data.notice;
-                const waNum = data.whatsapp ? String(data.whatsapp).replace(/\s/g, '') : "0";
-                const tgLink = data.telegram || "#";
-                const appLink = data.appLink || "#";
-                const fbLink = data.facebook || "#";
-                const ytLink = data.youtube || "#";
-                const waLink = `https://wa.me/${waNum}`;
-
-                const promoContainer = document.getElementById('promo-banner-container');
-                const promoImg = document.getElementById('promo-banner-img');
-                const promoLink = document.getElementById('promo-banner-link');
-                if(data.promoImageUrl && promoContainer && promoImg && promoLink) {
-                    promoImg.src = data.promoImageUrl;
-                    promoLink.href = data.promoImageLink || "#";
-                    promoContainer.classList.remove('hidden');
-                } else if(promoContainer) {
-                    promoContainer.classList.add('hidden');
-                }
-
-                document.getElementById('home-whatsapp').href = waLink;
-                document.getElementById('home-telegram').href = tgLink;
-                
-                const homeAppBtn = document.getElementById('home-app-dl');
-                homeAppBtn.href = appLink;
-                homeAppBtn.onclick = (e) => { if(appLink === "#") { e.preventDefault(); Swal.fire('Notice', 'App coming soon!', 'info'); } };
-
-                document.getElementById('link-whatsapp').href = waLink;
-                document.getElementById('link-telegram').href = tgLink;
-
-                document.getElementById('about-facebook').href = fbLink;
-                document.getElementById('about-youtube').href = ytLink;
-                document.getElementById('about-telegram').href = tgLink;
-                document.getElementById('about-whatsapp').href = waLink;
-                document.getElementById('contact-whatsapp').href = waLink;
-                document.getElementById('contact-telegram').href = tgLink;
-                document.getElementById('contact-facebook').href = fbLink;
-            }
-        });
-
+        // ডুপ্লিকেট কল বাদ দিয়ে শুধু কন্টেন্ট লোড করা হচ্ছে
         loadGamesAndCategories();
         loadTutorials();
         loadBanners();
         loadRecentOrdersGlobal(); 
     }
 
+    // ⚡ অতি দ্রুত ইনস্ট্যান্ট ক্যাশ সহ গেম লোডার
+    function renderGamesUI(categoriesMap, uncategorizedGames) {
+        const listContainer = document.getElementById('services-list');
+        if (!listContainer) return;
+
+        let finalHTML = '';
+
+        categoriesMap.forEach((category) => {
+            if (category.games && category.games.length > 0) {
+                let gamesHTML = '';
+                category.games.forEach(item => {
+                    gamesHTML += `
+                     <div onclick="openTopUpPage('${item.id}', '${item.name.replace(/'/g, "\\'")}', '${item.image}')" 
+                          class="bg-white rounded-lg shadow-[0_2px_0px_0px_rgba(3,169,244,0.5)] overflow-hidden cursor-pointer transform hover:-translate-y-1 transition-all duration-300 border border-gray-100 group">
+                        <div class="w-full aspect-square bg-gray-50 overflow-hidden relative">
+                            <img src="${item.image}" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://placehold.co/200'">
+                        </div>
+                        <div class="p-2 text-center bg-white border-t border-gray-50">
+                            <p class="text-xs font-bold text-gray-700 line-clamp-2 leading-tight lang-auto">${item.name}</p>
+                        </div>
+                    </div>`;
+                });
+
+                finalHTML += `
+                <div>
+                    <h3 class="font-bold text-gray-700 text-xl mb-3 text-center lang-auto" style="letter-spacing: 0.5px">${category.name}</h3>
+                    <div class="grid grid-cols-3 gap-6 px-4">
+                        ${gamesHTML}
+                    </div>
+                </div>`;
+            }
+        });
+
+        if (uncategorizedGames && uncategorizedGames.length > 0) {
+            let gamesHTML = '';
+            uncategorizedGames.forEach(item => {
+                gamesHTML += `
+                 <div onclick="openTopUpPage('${item.id}', '${item.name.replace(/'/g, "\\'")}', '${item.image}')" 
+                      class="bg-white rounded-lg shadow-[0_2px_0px_0px_rgba(3,169,244,0.5)] overflow-hidden cursor-pointer transform hover:-translate-y-1 transition-all duration-300 border border-gray-100 group">
+                    <div class="w-full aspect-square bg-gray-50 overflow-hidden relative">
+                        <img src="${item.image}" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://placehold.co/200'">
+                    </div>
+                    <div class="p-1 text-center bg-white border-t border-gray-50">
+                        <p class="text-[8px] font-bold text-gray-700 truncate">${item.name}</p>
+                    </div>
+                </div>`;
+            });
+            finalHTML += `
+            <div>
+                <h3 class="font-bold text-gray-500 text-lg border-l-4 border-gray-400 pl-2 mb-3">Others</h3>
+                <div class="grid grid-cols-3 gap-6 px-4">
+                    ${gamesHTML}
+                </div>
+            </div>`;
+        }
+
+        if (finalHTML) listContainer.innerHTML = finalHTML;
+    }
+
     async function loadGamesAndCategories() {
         const listContainer = document.getElementById('services-list');
-        listContainer.innerHTML = `<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-sky-500"></i> Loading Games...</div>`;
         gamesData = {};
 
+        // ১. পূর্বের ক্যাশ থাকলে সাথে সাথে ০ সেকেন্ডে স্ক্রিনে দেখাবে
+        try {
+            const cachedGamesData = localStorage.getItem('drl_cached_games');
+            const cachedCatMap = localStorage.getItem('drl_cached_cats');
+            const cachedUncat = localStorage.getItem('drl_cached_uncat');
+            if (cachedGamesData && cachedCatMap) {
+                gamesData = JSON.parse(cachedGamesData);
+                const parsedCats = new Map(JSON.parse(cachedCatMap));
+                const parsedUncat = JSON.parse(cachedUncat || '[]');
+                renderGamesUI(parsedCats, parsedUncat);
+            } else {
+                listContainer.innerHTML = `<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-sky-500"></i> Loading Games...</div>`;
+            }
+        } catch(e) {}
+
+        // ২. ফায়ারবেস থেকে ফ্রেশ ডাটা এনে ব্যাকগ্রাউন্ডে আপডেট করবে
         try {
             const [categoriesSnap, servicesSnap] = await Promise.all([
-                db.collection("categories").orderBy("slot").get(),
+                db.collection("categories").get(),
                 db.collection("services").get()
             ]);
 
-            if (servicesSnap.empty) {
+            if (servicesSnap.empty && !Object.keys(gamesData).length) {
                 listContainer.innerHTML = `<div class="col-span-3 text-center text-gray-700">No Games Found</div>`;
                 return;
             }
 
             const categoriesMap = new Map();
-            categoriesSnap.forEach(doc => {
-                categoriesMap.set(doc.id, { ...doc.data(), games: [] });
-            });
-            
+            // স্লট অনুযায়ী মেমোরিতে সাজানো (অতিরিক্ত ইন্ডেক্স কোয়েরি ছাড়াই ফাস্ট কাজ করবে)
+            const catDocs = [];
+            categoriesSnap.forEach(d => catDocs.push({ id: d.id, ...d.data() }));
+            catDocs.sort((a, b) => (a.slot || 0) - (b.slot || 0));
+            catDocs.forEach(c => categoriesMap.set(c.id, { ...c, games: [] }));
+
             let uncategorizedGames = [];
 
             servicesSnap.forEach(doc => {
                 const game = { id: doc.id, ...doc.data() };
                 gamesData[doc.id] = game;
-                
                 if (game.categoryId && categoriesMap.has(game.categoryId)) {
                     categoriesMap.get(game.categoryId).games.push(game);
                 } else {
@@ -1699,60 +1770,17 @@
                 }
             });
 
-            listContainer.innerHTML = "";
+            renderGamesUI(categoriesMap, uncategorizedGames);
 
-            categoriesMap.forEach((category) => {
-                if (category.games.length > 0) {
-                    let gamesHTML = '';
-                    category.games.forEach(item => {
-                        gamesHTML += `
-                         <div onclick="openTopUpPage('${item.id}', '${item.name}', '${item.image}')" 
-                              class="bg-white rounded-lg shadow-[0_2px_0px_0px_rgba(3,169,244,0.5)] overflow-hidden cursor-pointer transform hover:-translate-y-1 transition-all duration-300 border border-gray-100 group">
-                            <div class="w-full aspect-square bg-gray-50 overflow-hidden relative">
-                                <img src="${item.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://placehold.co/200'">
-                            </div>
-                            <div class="p-2 text-center bg-white border-t border-gray-50">
-                                <p class="text-xs font-bold text-gray-700 line-clamp-2 leading-tight lang-auto">${item.name}</p>
-                            </div>
-                        </div>`;
-                    });
-
-                    listContainer.innerHTML += `
-                    <div>
-                        <h3 class="font-bold text-gray-700 text-xl mb-3 text-center lang-auto" style="letter-spacing: 0.5px">${category.name}</h3>
-                        <div class="grid grid-cols-3 gap-6 px-4">
-                            ${gamesHTML}
-                        </div>
-                    </div>`;
-                }
-            });
-            
-             if(uncategorizedGames.length > 0) {
-                let gamesHTML = '';
-                uncategorizedGames.forEach(item => {
-                    gamesHTML += `
-                     <div onclick="openTopUpPage('${item.id}', '${item.name}', '${item.image}')" 
-                          class="bg-white rounded-lg shadow-[0_2px_0px_0px_rgba(3,169,244,0.5)] overflow-hidden cursor-pointer transform hover:-translate-y-1 transition-all duration-300 border border-gray-100 group">
-                        <div class="w-full aspect-square bg-gray-50 overflow-hidden relative">
-                            <img src="${item.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://placehold.co/200'">
-                        </div>
-                        <div class="p-1 text-center bg-white border-t border-gray-50">
-                            <p class="text-[8px] font-bold text-gray-700 truncate">${item.name}</p>
-                        </div>
-                    </div>`;
-                });
-                listContainer.innerHTML += `
-                <div>
-                    <h3 class="font-bold text-gray-500 text-lg border-l-4 border-gray-400 pl-2 mb-3">Others</h3>
-                    <div class="grid grid-cols-3 gap-6 px-4">
-                        ${gamesHTML}
-                    </div>
-                </div>`;
-            }
+            // ক্যাশ সংরক্ষণ
+            try {
+                localStorage.setItem('drl_cached_games', JSON.stringify(gamesData));
+                localStorage.setItem('drl_cached_cats', JSON.stringify(Array.from(categoriesMap.entries())));
+                localStorage.setItem('drl_cached_uncat', JSON.stringify(uncategorizedGames));
+            } catch(e) {}
 
         } catch (error) {
-            console.error("Failed to load games and categories:", error);
-            listContainer.innerHTML = `<div class="text-center text-red-500">Failed to load games. Please try again later.</div>`;
+            console.warn("Games fetch error:", error);
         }
     }
 
@@ -2325,7 +2353,14 @@
         db.collection("banners").onSnapshot((snapshot) => {
             const wrapper = document.getElementById('slider-wrapper');
             let slidesHTML = "";
-            snapshot.forEach((doc) => { if(doc.data().image) slidesHTML += `<img src="${doc.data().image}" class="w-full h-full object-cover flex-shrink-0">`; });
+            snapshot.forEach((doc) => {
+                const d = doc.data();
+                if(d.image) {
+                    const clickAttr = d.link ? `onclick="window.open('${d.link}', '_blank')"` : "";
+                    const cursorStyle = d.link ? "cursor-pointer" : "";
+                    slidesHTML += `<img src="${d.image}" ${clickAttr} class="w-full h-full object-cover flex-shrink-0 ${cursorStyle}">`;
+                }
+            });
             if(slidesHTML) { wrapper.innerHTML = slidesHTML; startSlider(); }
         });
     }
