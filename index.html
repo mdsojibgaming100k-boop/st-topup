@@ -979,32 +979,36 @@
     // ==========================================
     // 🔔 ONESIGNAL WEB PUSH & PERMISSION ENGINE
     // ==========================================
-    let oneSignalAppId = "";
+    let oneSignalAppId = "f02ea885-f5f3-4c5e-9baa-d91066b14653";
     let oneSignalApiKey = "";
 
     function initOneSignalEngine() {
+        // ফায়ারবেসে অন্য কী থাকলে অটো আপডেট হবে
         db.collection('settings').doc('onesignal').onSnapshot(doc => {
             if(doc.exists) {
                 const d = doc.data();
-                oneSignalAppId = d.app_id || "";
-                oneSignalApiKey = d.rest_api_key || "";
+                if (d.app_id && d.app_id.trim()) oneSignalAppId = d.app_id.trim();
+                if (d.rest_api_key) oneSignalApiKey = d.rest_api_key.trim();
+            }
+        });
 
-                if(oneSignalAppId) {
-                    window.OneSignalDeferred = window.OneSignalDeferred || [];
-                    window.OneSignalDeferred.push(async function(OneSignal) {
-                        try {
-                            await OneSignal.init({
-                                appId: oneSignalAppId,
-                                allowLocalhostAsSecureOrigin: true
-                            });
+        // আপনার আসল App ID ও Safari ID দিয়ে সরাসরি ইনিশিয়ালাইজ
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async function(OneSignal) {
+            try {
+                await OneSignal.init({
+                    appId: oneSignalAppId,
+                    safari_web_id: "web.onesignal.auto.41aef4b6-51a4-4778-92bc-f3aa3e26acde",
+                    notifyButton: {
+                        enable: false, // ছোট ঘণ্টা হাইড করে সুন্দর পপ-আপ চালানো হলো
+                    },
+                    allowLocalhostAsSecureOrigin: true
+                });
 
-                            // পারমিশন স্ট্যাটাস চেক
-                            checkAndShowPushPermissionModal();
-                        } catch(e) {
-                            console.warn("OneSignal init error:", e);
-                        }
-                    });
-                }
+                // ১.৫ সেকেন্ডের ভেতর মিষ্টি সাউন্ড সহ পপ-আপ ভেসে উঠবে
+                checkAndShowPushPermissionModal();
+            } catch(e) {
+                console.warn("OneSignal init error:", e);
             }
         });
     }
@@ -2817,7 +2821,7 @@ const num = data[fieldKey] || "Not Available";
         </div>
     </div>
 </div>
-<!-- 🔔 SOUND & NATIVE PUSH PERMISSION POPUP MODAL -->
+<!-- 🔔 SWEET AUDIO & WEB PUSH PERMISSION MODAL -->
 <audio id="pushPermissionVoiceAudio" preload="auto">
     <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
 </audio>
@@ -2827,11 +2831,11 @@ const num = data[fieldKey] || "Not Available";
         <div class="w-16 h-16 bg-sky-100 text-sky-600 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-sm animate-bounce">
             <i class="fas fa-bell"></i>
         </div>
-        <h3 class="text-lg font-bold text-gray-800">গুরুত্বপূর্ণ নোটিফিকেশন 🔔</h3>
+        <h3 class="text-lg font-bold text-gray-800">নোটিফিকেশন চালু করুন 🔔</h3>
         <p class="text-xs text-sky-600 font-bold mt-1">অর্ডার আপডেট ও অফার সবার আগে পেতে</p>
         
         <p class="text-xs text-gray-600 leading-relaxed my-4 px-2">
-            আপনার টপ-আপ অর্ডার সফল হওয়া মাত্র কনফার্মেশন ও সকল স্পেশাল ডিসকাউন্ট অফার সরাসরি স্ক্রিনে পেতে নোটিফিকেশন চালু রাখুন।
+            আপনার টপ-আপ সফল হওয়া মাত্রই অর্ডার কনফার্মেশন ও স্পেশাল ডিসকাউন্ট অফার সরাসরি স্ক্রিনে পেতে নোটিফিকেশন অন রাখুন।
         </p>
 
         <div class="space-y-2">
