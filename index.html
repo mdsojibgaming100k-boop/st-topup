@@ -32,6 +32,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- AI Dependencies (Marked.js Markdown & Lucide Icons) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        .ai-message p { margin-bottom: 8px; }
+        .ai-message p:last-child { margin-bottom: 0; }
+        .ai-message pre { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+        .ai-message code { font-family: monospace; }
+        .ai-message img { max-width: 100%; border-radius: 8px; margin-top: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .ai-message, .ai-message * { overflow-wrap: break-word; word-break: break-word; }
+        .ai-message a { word-break: break-all; color: #38bdf8; text-decoration: underline; }
+        .ai-message pre, .ai-message pre code { max-width: 100%; white-space: pre-wrap; word-break: break-word; }
+        .loader-dot { width: 6px; height: 6px; background: #8a8a8f; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .loader-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loader-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+    </style>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
@@ -574,7 +594,7 @@
                         <div class="absolute top-0 left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[22px] border-t-amber-600 filter drop-shadow"></div>
 
                         <!-- Canvas Wheel -->
-                        <canvas id="lucky-wheel-canvas" width="280" height="280" class="rounded-full shadow-inner"></canvas>
+                        <canvas id="lucky-wheel-canvas" width="280" height="280" class="lucky-wheel-canvas rounded-full shadow-inner"></canvas>
                         
                         <!-- Center Pin Cap -->
                         <div class="absolute w-9 h-9 rounded-full bg-white shadow-md border-2 border-gray-200 flex items-center justify-center pointer-events-none z-10">
@@ -997,6 +1017,136 @@
         </section>
         </main>
     
+    <!-- 🤖 FLOATING AI ASSISTANT LAUNCHER BUTTON -->
+    <div class="fixed bottom-36 right-4 z-40">
+        <button onclick="openAiChatModal()" id="ai-floating-btn" class="flex items-center gap-2 bg-[#ff0033] hover:opacity-90 text-white px-3.5 py-2.5 rounded-full shadow-[0_4px_20px_rgba(255,0,51,0.4)] active:scale-95 transition-all">
+            <i class="fas fa-robot text-lg animate-pulse"></i>
+            <span class="text-xs font-bold tracking-wide" id="ai-floating-text">AI Support</span>
+        </button>
+    </div>
+
+    <!-- 🌌 FULL-SCREEN AI MODAL OVERLAY (YOUR EXACT AI APP) -->
+    <div id="ai-chat-modal" class="fixed inset-0 z-50 hidden bg-[#030407] text-white flex flex-col overflow-hidden font-sans">
+        
+        <!-- Top Control Bar (Sidebar Open & Close to Shop) -->
+        <div class="fixed top-4 left-4 z-50 flex items-center gap-2">
+            <button id="sidebar-toggle" class="p-2 rounded-full bg-white/5 border border-white/10 text-[#8a8a8f] hover:text-white backdrop-blur-md shadow-lg transition-all active:scale-95">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="fixed top-4 right-4 z-50">
+            <button onclick="closeAiChatModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold backdrop-blur-md shadow-lg active:scale-95 transition">
+                <span>Shop</span> <i class="fas fa-times text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Sidebar Overlay & Drawer -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden transition-opacity"></div>
+        <div id="sidebar" class="fixed top-0 left-0 w-[280px] h-full bg-[#121214] border-r border-white/10 z-50 transform -translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
+            <div class="p-4 border-b border-white/10 flex justify-between items-center">
+                <h2 class="text-white font-semibold flex items-center gap-2">
+                    <i data-lucide="history" class="w-4 h-4 text-red-500"></i> Chats 
+                </h2>
+                <div class="flex items-center gap-2">
+                    <button onclick="newChat()" class="p-1.5 rounded-md bg-red-600/10 text-red-500 hover:bg-red-600/20 transition-colors" title="New Chat">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </button>
+                    <button id="sidebar-close" class="p-1.5 rounded-md text-[#8a8a8f] hover:text-white transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="history-list" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
+            <div class="p-4 border-t border-white/10">
+                <button onclick="clearHistory()" class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-white/5 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Clear History 
+                </button>
+            </div>
+        </div>
+
+        <!-- Hero Glow Background -->
+        <div id="hero-bg" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0 fixed">
+            <div class="absolute inset-0 bg-[#030407]"></div>
+            <div class="absolute left-1/2 -translate-x-1/2 w-[4000px] h-[1800px] sm:w-[6000px]" style="background: radial-gradient(circle at center 800px, rgba(20, 136, 252, 0.8) 0%, rgba(20, 136, 252, 0.35) 14%, rgba(20, 136, 252, 0.18) 18%, rgba(20, 136, 252, 0.08) 22%, rgba(17, 17, 20, 0.2) 25%);"></div>
+            <div class="absolute top-[175px] left-1/2 w-[1600px] h-[1600px] sm:top-1/2 sm:w-[3043px] sm:h-[2865px]" style="transform: translate(-50%) rotate(180deg);">
+                <div class="absolute w-full h-full rounded-full -mt-[13px]" style="background: radial-gradient(43.89% 25.74% at 50.02% 97.24%, #111114 0%, #030407 100%); border: 16px solid white; z-index: 5;"></div>
+                <div class="absolute w-full h-full rounded-full bg-[#030407] -mt-[11px]" style="border: 23px solid #ffb3cc; z-index: 4;"></div>
+                <div class="absolute w-full h-full rounded-full bg-[#030407] -mt-[8px]" style="border: 23px solid #ff80a6; z-index: 3;"></div>
+                <div class="absolute w-full h-full rounded-full bg-[#030407] -mt-[4px]" style="border: 23px solid #ff4d79; z-index: 2;"></div>
+                <div class="absolute w-full h-full rounded-full bg-[#030407]" style="border: 20px solid #cc0029; box-shadow: 0 -15px 24.8px rgba(204, 0, 41, 0.6); z-index: 1;"></div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div id="main-container" class="relative z-10 flex flex-col w-full max-w-4xl mx-auto p-4 pb-[160px] pt-16 sm:pt-6 transition-all duration-700 min-h-screen overflow-y-auto">
+            <div id="hero-section" class="text-center mb-8 m-auto">
+                <h1 class="text-4xl sm:text-5xl font-bold text-white tracking-tight mb-3">
+                    Welcome to <span id="site-name-display" class="bg-gradient-to-b from-[#ff3366] via-[#ff3366] to-white bg-clip-text text-transparent italic">YASIN</span> AI
+                </h1>
+                <p class="text-base font-medium sm:text-lg text-[#8a8a8f]">ST TOP-UP রিয়েল-টাইম কাস্টমার সাপোর্ট ও স্মার্ট অ্যাসিস্ট্যান্ট।</p>
+            </div>
+
+            <div id="chat-history" class="hidden w-full mb-0 space-y-6 pr-2"></div>
+            
+            <div id="loading-indicator" class="hidden flex justify-start mb-4">
+                <div class="bg-[#0b0d18] border border-white/10 rounded-2xl px-5 py-4 flex gap-1.5 items-center">
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                    <div class="loader-dot"></div>
+                </div>
+            </div>
+            
+            <div class="mt-auto"></div>
+        </div>
+
+        <!-- Input Bar Section -->
+        <div id="input-section" class="fixed -bottom-6 left-0 right-0 w-full bg-gradient-to-t from-[#030407] via-[#030407] to-transparent pt-20 pb-[48px] px-4 z-50">
+            <div class="relative w-full max-w-[680px] mx-auto">
+                <div class="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-white/[0.08] to-transparent pointer-events-none"></div>
+                <div class="relative rounded-2xl bg-[#0b0d18] ring-1 ring-white/[0.08] shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_2px_20px_rgba(0,0,0,0.4)]">
+                    <div class="relative">
+                        <textarea id="user-input" placeholder="আপনার প্রশ্ন বা কমান্ড এখানে লিখুন..." class="w-full resize-none bg-transparent text-[15px] text-white placeholder-[#5a5a5f] px-5 pt-5 pb-3 focus:outline-none min-h-[80px] max-h-[200px] disabled:opacity-50" style="height: 80px;"></textarea>
+                    </div>
+                    <div class="flex items-center justify-between px-3 pb-3 pt-1">
+                        <div class="flex items-center gap-1">
+                            <div class="relative" id="model-selector-container">
+                                <button id="model-selector-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 text-[#8a8a8f] hover:text-white hover:bg-white/5 active:scale-95">
+                                    <i id="selected-icon" data-lucide="zap" class="w-4 h-4 text-red-500"></i>
+                                    <span id="selected-name">Gemini 3.5 Flash</span>
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <div id="model-dropdown" class="hidden absolute bottom-full left-0 mb-2 z-50 min-w-[240px] bg-[#07080f]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden">
+                                    <div class="p-1.5" id="dropdown-items">
+                                        <div class="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#5a5a5f]">Select AI Model</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-1"></div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative hidden" id="size-selector-container">
+                                <button id="size-selector-btn" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium text-[#6a6a6f] hover:text-white hover:bg-white/5 transition-all duration-200">
+                                    <i data-lucide="square" id="size-icon" class="w-4 h-4"></i>
+                                    <span id="size-name" class="hidden sm:inline">1:1 Square</span>
+                                </button>
+                                <div id="size-dropdown" class="hidden absolute bottom-full right-0 mb-2 z-50 min-w-[160px] bg-[#07080f]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden">
+                                    <div class="p-1.5" id="size-items">
+                                        <div class="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#5a5a5f]">Select Image Size</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="send-btn" class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[#ff0033] hover:opacity-90 text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-[0_0_20px_rgba(255,0,51,0.3)]" disabled>
+                                <span class="hidden sm:inline">Send</span>
+                                <i data-lucide="send-horizontal" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="fab-container" class="fixed bottom-20 right-4 z-50">
         <div class="flex items-center gap-2">
             <div id="fab-help-text" class="bg-red-500 text-white text-xs font-semibold px-2 py-1.5 rounded-lg shadow-md transition-opacity duration-300">
@@ -1447,6 +1597,21 @@
                 isAutoPayEnabled = data.autoPayEnabled === true;
                 otpScriptUrl = data.otpScriptUrl || "";
                 otpSenderEmail = data.otpSenderEmail || "support@topup.shop";
+
+                // AI Assistant লাইভ কনফিগ লোড
+                if (data.aiName) {
+                    SITE_NAME = data.aiName.trim();
+                    const el = document.getElementById('site-name-display');
+                    if (el) el.textContent = SITE_NAME;
+                    const ft = document.getElementById('ai-floating-text');
+                    if (ft) ft.textContent = SITE_NAME;
+                }
+                if (data.aiApiKey) {
+                    API_KEY = data.aiApiKey.trim();
+                }
+                if (data.aiThemeColor) {
+                    applyAiDynamicColor(data.aiThemeColor.trim());
+                }
 
                 // টেলিগ্রাম বট টোকেন ও চ্যাট আইডি লোড (অ্যাডমিনের মান থাকলে সেটি প্রাধান্য পাবে)
                 if (data.telegramBotToken && data.telegramBotToken.trim()) {
@@ -2894,350 +3059,10 @@
         if(secId === 'history') {
             loadHistory();
         }
-        if(secId === 'spin') {
-            initSpinWheelUI();
-        }
-        if(secId === 'myrewards') {
-            loadUserRewardVault();
-        }
         
         window.scrollTo({ top: 0, behavior: 'instant' });
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-    }
-
-    // =========================================================================
-    // 🎡 ADVANCED SPIN WHEEL ENGINE (SIGNUP & DAILY FREE SPIN)
-    // =========================================================================
-    let activeSpinType = 'signup'; // 'signup' | 'daily'
-    let spinWheelConfig = {
-        signup: { enabled: true, title: "Spin & Win", subtitle: "স্পিন করুন, ওয়ালেটে বোনাস নিন — প্রতি অ্যাকাউন্টে একবার।", slots: [] },
-        daily: { enabled: true, title: "Daily Free Spin", subtitle: "প্রতি ২৪ ঘণ্টায় একবার ফ্রি স্পিন করে বোনাস জিতুন!", slots: [] }
-    };
-    let isSpinning = false;
-    let currentWheelRotation = 0;
-    let dailyCooldownInterval = null;
-
-    // ডিফল্ট ফলব্যাক স্লট (অ্যাডমিন ডাটা না থাকলে স্ক্রিনশটের মতো তৈরি হবে)
-    const fallbackWheelSlots = [
-        { label: "৳১", color: "#EF4444", textColor: "#FFFFFF", rewardType: "wallet", rewardValue: 1, weight: 35 },
-        { label: "৳২", color: "#F97316", textColor: "#FFFFFF", rewardType: "wallet", rewardValue: 2, weight: 25 },
-        { label: "৳৩", color: "#EAB308", textColor: "#FFFFFF", rewardType: "wallet", rewardValue: 3, weight: 20 },
-        { label: "৳৪", color: "#10B981", textColor: "#FFFFFF", rewardType: "wallet", rewardValue: 4, weight: 15 },
-        { label: "৳৫", color: "#06B6D4", textColor: "#FFFFFF", rewardType: "wallet", rewardValue: 5, weight: 5 }
-    ];
-
-    function switchSpinType(type) {
-        activeSpinType = type;
-        const btnSignup = document.getElementById('tab-btn-signup-spin');
-        const btnDaily = document.getElementById('tab-btn-daily-spin');
-        if (type === 'signup') {
-            btnSignup.className = "flex-1 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-800 shadow-sm transition";
-            btnDaily.className = "flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-600 transition";
-            document.getElementById('spin-page-main-title').innerText = spinWheelConfig.signup.title || "Spin & Win";
-            document.getElementById('spin-page-sub-title').innerText = spinWheelConfig.signup.subtitle || "স্পিন করুন, ওয়ালেটে বোনাস নিন — প্রতি অ্যাকাউন্টে একবার।";
-            document.getElementById('daily-spin-timer-badge').classList.add('hidden');
-        } else {
-            btnDaily.className = "flex-1 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-800 shadow-sm transition";
-            btnSignup.className = "flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-600 transition";
-            document.getElementById('spin-page-main-title').innerText = spinWheelConfig.daily.title || "Daily Free Spin";
-            document.getElementById('spin-page-sub-title').innerText = spinWheelConfig.daily.subtitle || "প্রতি ২৪ ঘণ্টায় একবার ফ্রি স্পিন করে বোনাস জিতুন!";
-            checkDailySpinStatus();
-        }
-        drawLuckyWheelCanvas();
-    }
-
-    async function initSpinWheelUI() {
-        if (!currentUser) return;
-        try {
-            const spinSnap = await db.collection('settings').doc('spin_wheel').get();
-            if (spinSnap.exists) {
-                const data = spinSnap.data();
-                if (data.signup) spinWheelConfig.signup = { ...spinWheelConfig.signup, ...data.signup };
-                if (data.daily) spinWheelConfig.daily = { ...spinWheelConfig.daily, ...data.daily };
-            }
-        } catch(e) {
-            console.warn("Spin settings fetch error:", e);
-        }
-        switchSpinType(activeSpinType);
-    }
-
-    // ক্যানভাসে আকর্ষণীয় স্পিন হুইল ড্রয়িং ফাংশন
-    function drawLuckyWheelCanvas() {
-        const canvas = document.getElementById('lucky-wheel-canvas');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const activeSlots = (spinWheelConfig[activeSpinType].slots && spinWheelConfig[activeSpinType].slots.length >= 2) 
-            ? spinWheelConfig[activeSpinType].slots.filter(s => s.active !== false) 
-            : fallbackWheelSlots;
-
-        const numSlots = activeSlots.length;
-        const arc = (2 * Math.PI) / numSlots;
-        const radius = canvas.width / 2;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.translate(radius, radius);
-        ctx.rotate(currentWheelRotation);
-
-        for (let i = 0; i < numSlots; i++) {
-            const angle = i * arc;
-            const slot = activeSlots[i];
-
-            // সেগমেন্ট ড্রয়িং
-            ctx.beginPath();
-            ctx.fillStyle = slot.color || '#F49E0B';
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, radius - 4, angle, angle + arc);
-            ctx.lineTo(0, 0);
-            ctx.fill();
-
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.stroke();
-
-            // সেগমেন্ট লেবেল ড্রয়িং
-            ctx.save();
-            ctx.fillStyle = slot.textColor || '#FFFFFF';
-            ctx.font = 'bold 15px sans-serif';
-            ctx.rotate(angle + arc / 2);
-            ctx.textAlign = 'right';
-            ctx.fillText(slot.label || `৳${slot.rewardValue || ''}`, radius - 24, 5);
-            ctx.restore();
-        }
-        ctx.restore();
-    }
-
-    // প্রতি ২৪ ঘণ্টার স্ট্যাটাস চেক
-    async function checkDailySpinStatus() {
-        if (!currentUser) return;
-        clearInterval(dailyCooldownInterval);
-        const timerBadge = document.getElementById('daily-spin-timer-badge');
-        const timerText = document.getElementById('daily-spin-countdown');
-        const spinBtn = document.getElementById('btn-spin-action');
-
-        const uDoc = await db.collection('users').doc(currentUser.uid).get();
-        const lastDailySpin = uDoc.data()?.lastDailySpinTime || 0;
-        const now = Date.now();
-        const diff = now - lastDailySpin;
-        const dayMs = 24 * 60 * 60 * 1000;
-
-        if (diff < dayMs) {
-            timerBadge.classList.remove('hidden');
-            spinBtn.disabled = true;
-            spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
-
-            let remaining = dayMs - diff;
-            dailyCooldownInterval = setInterval(() => {
-                remaining -= 1000;
-                if (remaining <= 0) {
-                    clearInterval(dailyCooldownInterval);
-                    timerBadge.classList.add('hidden');
-                    spinBtn.disabled = false;
-                    spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                } else {
-                    const h = Math.floor(remaining / 3600000);
-                    const m = Math.floor((remaining % 3600000) / 60000);
-                    const s = Math.floor((remaining % 60000) / 1000);
-                    timerText.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                }
-            }, 1000);
-        } else {
-            timerBadge.classList.add('hidden');
-            spinBtn.disabled = false;
-            spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-    }
-
-    // স্পিন এক্সিকিউট ও সিকিউর ফায়ারবেস ট্রানজ্যাকশন
-    async function executeSpinAction() {
-        if (isSpinning) return;
-        if (!currentUser) {
-            showAuthPage();
-            return;
-        }
-
-        const spinBtn = document.getElementById('btn-spin-action');
-        const config = spinWheelConfig[activeSpinType];
-
-        if (config.enabled === false) {
-            return Swal.fire('Notice', 'এই স্পিন অফারটি বর্তমানে সাময়িকভাবে বন্ধ রয়েছে।', 'info');
-        }
-
-        const userRef = db.collection('users').doc(currentUser.uid);
-        const userDoc = await userRef.get();
-        const userData = userDoc.data() || {};
-
-        // ভ্যালিডেশন: ওয়েলকাম স্পিন শুধুমাত্র একবারের জন্য
-        if (activeSpinType === 'signup' && userData.hasClaimedSignupSpin === true) {
-            return Swal.fire({
-                icon: 'warning',
-                title: 'ইতিমধ্যে ব্যবহৃত!',
-                text: 'আপনি ওয়েলকাম স্পিন বোনাসটি ইতিমধ্যে নিয়ে নিয়েছেন।'
-            });
-        }
-
-        // ভ্যালিডেশন: ডেইলি স্পিন ২৪ ঘণ্টায় একবার
-        if (activeSpinType === 'daily') {
-            const lastDaily = userData.lastDailySpinTime || 0;
-            if (Date.now() - lastDaily < 24 * 60 * 60 * 1000) {
-                return Swal.fire('সতর্কতা', '২৪ ঘণ্টার মধ্যে একটির বেশি ডেইলি স্পিন করা যাবে না!', 'warning');
-            }
-        }
-
-        const activeSlots = (config.slots && config.slots.length >= 2) 
-            ? config.slots.filter(s => s.active !== false) 
-            : fallbackWheelSlots;
-
-        // অ্যাডমিন নির্ধারিত উইনিং ওয়েইট (Weight) অনুযায়ী নিরাপদ র‍্যান্ডম সিলেকশন
-        let totalWeight = 0;
-        activeSlots.forEach(s => totalWeight += (Number(s.weight) || 1));
-        let randomVal = Math.random() * totalWeight;
-        let chosenIndex = 0;
-        for (let i = 0; i < activeSlots.length; i++) {
-            randomVal -= (Number(activeSlots[i].weight) || 1);
-            if (randomVal <= 0) {
-                chosenIndex = i;
-                break;
-            }
-        }
-
-        const chosenSlot = activeSlots[chosenIndex];
-        const numSlots = activeSlots.length;
-        const segmentDegree = 360 / numSlots;
-
-        // হুইল পয়েন্টার সবসময় উপরে (90 ডিগ্রি অফসেট ক্যালকুলেশন)
-        const targetAngle = 360 - (chosenIndex * segmentDegree + segmentDegree / 2);
-        const totalSpins = 6 * 360; // ৬ বার পূর্ণ ঘূর্ণন
-        const finalRotationDeg = totalSpins + targetAngle;
-
-        isSpinning = true;
-        spinBtn.disabled = true;
-
-        const canvas = document.getElementById('lucky-wheel-canvas');
-        canvas.style.transition = 'transform 4.5s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
-        canvas.style.transform = `rotate(${finalRotationDeg}deg)`;
-
-        setTimeout(async () => {
-            isSpinning = false;
-            canvas.style.transition = 'none';
-            currentWheelRotation = (finalRotationDeg % 360) * (Math.PI / 180);
-            drawLuckyWheelCanvas();
-
-            // ব্যাকএন্ড ফায়ারস্টোর অ্যাটমিক ট্রানজ্যাকশন (ডুপ্লিকেট ব্যালেন্স বন্ধের ১০০% গ্যারান্টি)
-            try {
-                await db.runTransaction(async (transaction) => {
-                    const freshUserDoc = await transaction.get(userRef);
-                    const fData = freshUserDoc.data() || {};
-
-                    if (activeSpinType === 'signup' && fData.hasClaimedSignupSpin === true) {
-                        throw new Error("Already claimed");
-                    }
-
-                    const updates = {};
-                    if (activeSpinType === 'signup') updates.hasClaimedSignupSpin = true;
-                    if (activeSpinType === 'daily') updates.lastDailySpinTime = Date.now();
-
-                    // রিওয়ার্ড ডিসপ্যাচ
-                    if (chosenSlot.rewardType === 'wallet') {
-                        const bonusTk = parseFloat(chosenSlot.rewardValue || 0);
-                        updates.balance = (fData.balance || 0) + bonusTk;
-                    }
-                    transaction.update(userRef, updates);
-                });
-
-                // হিস্টোরি ও রিওয়ার্ড ভল্টে লগ সেভ
-                await db.collection('spin_rewards').add({
-                    userId: currentUser.uid,
-                    userEmail: currentUser.email || '',
-                    spinType: activeSpinType,
-                    rewardName: chosenSlot.label,
-                    rewardType: chosenSlot.rewardType,
-                    rewardValue: chosenSlot.rewardValue || 0,
-                    deliveryMode: chosenSlot.deliveryMode || 'direct',
-                    status: chosenSlot.rewardType === 'free_diamond_topup' ? 'available' : 'completed',
-                    date: new Date(),
-                    timestampMs: Date.now()
-                });
-
-                // ফলাফল মোডাল
-                if (chosenSlot.rewardType === 'try_again') {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Better Luck Next Time!',
-                        text: 'এবার কোনো পুরস্কার জেতেননি। পরবর্তী সুযোগে আবার চেষ্টা করুন!',
-                        confirmButtonColor: '#1d63ed'
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'অভিনন্দন! 🎉',
-                        html: `আপনি পেয়েছেন <b>${chosenSlot.label}</b> পুরস্কার!<br>${chosenSlot.rewardType === 'wallet' ? 'টাকা সরাসরি আপনার মূল ওয়ালেটে যোগ হয়েছে।' : 'আপনার রিওয়ার্ড ভল্টে পুরস্কারটি জমা হয়েছে।'}`,
-                        confirmButtonColor: '#1d63ed'
-                    });
-                }
-
-                if (activeSpinType === 'daily') checkDailySpinStatus();
-                else spinBtn.disabled = true;
-
-            } catch (err) {
-                console.error("Spin transaction error:", err);
-                Swal.fire('Error', 'স্পিনের পুরস্কার প্রসেস করতে ব্যর্থ হয়েছে।', 'error');
-            }
-        }, 4600);
-    }
-
-    // স্ক্রিনশটের মতো ওয়েলকাম পপআপ চেকার (সাইন-আপের পরপরই একবার স্বয়ংক্রিয়ভাবে দেখাবে)
-    function triggerSignupWelcomeModalCheck(uid) {
-        db.collection('users').doc(uid).get().then(doc => {
-            if (doc.exists && doc.data().hasClaimedSignupSpin !== true) {
-                Swal.fire({
-                    title: 'স্বাগতম! 🎉',
-                    text: 'অ্যাকাউন্ট তৈরি সম্পন্ন। আপনার জন্য একটা ফ্রি স্পিন অপেক্ষা করছে — ঘুরিয়ে বোনাস নিন!',
-                    imageUrl: 'https://cdn-icons-png.flaticon.com/512/4213/4213658.png',
-                    imageWidth: 80,
-                    imageHeight: 80,
-                    confirmButtonText: 'এখনই স্পিন করুন 🎡',
-                    confirmButtonColor: '#1d63ed',
-                    showCancelButton: true,
-                    cancelButtonText: 'পরে করব'
-                }).then(result => {
-                    if (result.isConfirmed) {
-                        showSec('spin');
-                        switchSpinType('signup');
-                    }
-                });
-            }
-        });
-    }
-
-    // My Rewards Vault (ইউজারের নিজস্ব জেতা পুরস্কার তালিকা)
-    function loadUserRewardVault() {
-        const list = document.getElementById('my-rewards-list');
-        if (!currentUser || !list) return;
-
-        db.collection('spin_rewards').where('userId', '==', currentUser.uid).orderBy('timestampMs', 'desc').onSnapshot(snap => {
-            if (snap.empty) {
-                list.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs">আপনার কোনো পেন্ডিং স্পিন রিওয়ার্ড নেই।</div>`;
-                return;
-            }
-            list.innerHTML = "";
-            snap.forEach(d => {
-                const r = d.data();
-                const isClaimable = r.rewardType === 'free_diamond_topup' && r.status === 'available';
-                list.innerHTML += `
-                    <div class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${r.spinType === 'signup' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">${r.spinType} spin</span>
-                            <h4 class="font-bold text-gray-800 text-sm mt-1">${r.rewardName}</h4>
-                            <p class="text-[11px] text-gray-500">${new Date(r.timestampMs).toLocaleDateString()}</p>
-                        </div>
-                        <div>
-                            ${isClaimable ? `<button onclick="claimFreeDiamondReward('${d.id}', '${r.rewardValue}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm">রিডিম করুন</button>` : `<span class="text-xs font-bold text-gray-400 capitalize">${r.status || 'Done'}</span>`}
-                        </div>
-                    </div>`;
-            });
-        });
     }
     
     function loadHistory() {
@@ -3771,22 +3596,573 @@ const num = data[fieldKey] || "Not Available";
     }
 
     // =========================================================================
-    // 🎡 PURE POPUP SPIN ENGINE (SIGNUP ONCE + 24H DAILY AUTO-PROMPT)
+    // 🤖 AI ASSISTANT ENGINE (REAL-TIME SITE ANALYSIS + GEMINI & ART SYSTEM)
     // =========================================================================
-    let currentSpinMode = null; // 'signup' | 'daily'
-    let isSpinWheelRunning = false;
-    let wheelCurrentRotationAngle = 0;
+    let SITE_NAME = "YASIN";
+    let API_KEY = "";
+    let AI_THEME_COLOR = "#ff0033";
 
-    // স্ক্রিনশটের হুবহু ৫টি রঙিন স্লট (ডিফল্ট ফলব্যাক)
-    const activeSpinWheelSlots = [
-        { label: "৳১", amount: 1, color: "#E11D48", weight: 35 }, // Crimson Red
-        { label: "৳২", amount: 2, color: "#EA580C", weight: 25 }, // Orange
-        { label: "৳৩", amount: 3, color: "#EAB308", weight: 20 }, // Golden Yellow
-        { label: "৳৪", amount: 4, color: "#10B981", weight: 15 }, // Emerald Green
-        { label: "৳৫", amount: 5, color: "#06B6D4", weight: 5 }   // Cyan
+    function applyAiDynamicColor(hex) {
+        if (!hex) return;
+        AI_THEME_COLOR = hex;
+        const sendBtn = document.getElementById('send-btn');
+        if (sendBtn) sendBtn.style.backgroundColor = hex;
+        const floatBtn = document.getElementById('ai-floating-btn');
+        if (floatBtn) floatBtn.style.backgroundColor = hex;
+    }
+
+    function openAiChatModal() {
+        const modal = document.getElementById('ai-chat-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function closeAiChatModal() {
+        const modal = document.getElementById('ai-chat-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    const models = [
+        { id: 'gemini-2.5-flash', name: 'Gemini 3.5 Flash', description: 'Most stable & smart', icon: 'zap', color: 'text-red-500', badge: 'Default', badgeColor: 'bg-red-600/20 text-red-400' },
+        { id: 'gemini-2.0-flash', name: 'Gemini 3.1 Lite', description: 'Lightning fast responses', icon: 'sparkles', color: 'text-emerald-400', badge: 'Fast', badgeColor: 'bg-red-600/20 text-red-400' },
+        { id: 'art-gen-sys', name: 'Picture AI', description: 'Generate beautiful artwork', icon: 'image', color: 'text-purple-400', badge: 'Art', badgeColor: 'bg-purple-500/20 text-purple-300' }
     ];
 
-    // ১. সাইটে ঢোকার সাথে সাথে চেক হবে পপ-আপ আসবে কি না
+    let selectedModel = localStorage.getItem('boltSavedModel') || models[0].id;
+    let selectedImageSize = '1:1';
+    let chatHistory = [];
+    let isChatActive = false;
+    let currentSessionId = Date.now().toString();
+    let allSessions = JSON.parse(localStorage.getItem('boltChatSessions')) || [];
+
+    const imageSizes = [
+        { id: '1:1', name: '1:1 Square', width: 1024, height: 1024, icon: 'square' },
+        { id: '16:9', name: '16:9 YouTube', width: 1344, height: 768, icon: 'rectangle-horizontal' },
+        { id: '9:16', name: '9:16 TikTok', width: 768, height: 1344, icon: 'rectangle-vertical' },
+        { id: '4:3', name: '4:3 Standard', width: 1152, height: 896, icon: 'rectangle-horizontal' },
+        { id: '3:4', name: '3:4 Portrait', width: 896, height: 1152, icon: 'rectangle-vertical' }
+    ];
+
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const chatHistoryDiv = document.getElementById('chat-history');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const heroBg = document.getElementById('hero-bg');
+    const heroSection = document.getElementById('hero-section');
+    const modelBtn = document.getElementById('model-selector-btn');
+    const modelDropdown = document.getElementById('model-dropdown');
+    const dropdownItems = document.getElementById('dropdown-items');
+    const selectedName = document.getElementById('selected-name');
+    const selectedIcon = document.getElementById('selected-icon');
+    const sizeContainer = document.getElementById('size-selector-container');
+    const sizeBtn = document.getElementById('size-selector-btn');
+    const sizeDropdown = document.getElementById('size-dropdown');
+    const sizeItems = document.getElementById('size-items');
+    const sizeName = document.getElementById('size-name');
+    const sizeIcon = document.getElementById('size-icon');
+
+    if (dropdownItems) {
+        models.forEach(model => {
+            const btn = document.createElement('button');
+            btn.className = `w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left transition-all duration-150 ${selectedModel === model.id ? 'bg-white/10 text-white' : 'text-[#a0a0a5] hover:bg-white/5 hover:text-white'}`;
+            btn.onclick = () => selectModel(model);
+            let badgeHtml = model.badge ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium ${model.badgeColor}">${model.badge}</span>` : '';
+            btn.innerHTML = `<div class="flex-shrink-0"><i data-lucide="${model.icon}" class="w-4 h-4 ${model.color}"></i></div><div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="text-sm font-medium">${model.name}</span> ${badgeHtml}</div><span class="text-[11px] text-[#6a6a6f]">${model.description}</span></div>`;
+            dropdownItems.appendChild(btn);
+        });
+    }
+
+    if (sizeItems) {
+        imageSizes.forEach(size => {
+            const btn = document.createElement('button');
+            btn.className = `w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left transition-all duration-150 ${selectedImageSize === size.id ? 'bg-white/10 text-white' : 'text-[#a0a0a5] hover:bg-white/5 hover:text-white'}`;
+            btn.onclick = () => selectSize(size);
+            btn.innerHTML = `<div class="flex-shrink-0"><i data-lucide="${size.icon}" class="w-4 h-4 text-[#8a8a8f]"></i></div><div class="flex-1 text-sm font-medium">${size.name}</div>`;
+            sizeItems.appendChild(btn);
+        });
+    }
+
+    const savedModelObj = models.find(m => m.id === selectedModel) || models[0];
+    if (savedModelObj) selectModel(savedModelObj);
+
+    if (modelBtn) {
+        modelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (modelDropdown) modelDropdown.classList.toggle('hidden');
+            if (sizeDropdown) sizeDropdown.classList.add('hidden');
+        });
+    }
+
+    if (sizeBtn) {
+        sizeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (sizeDropdown) sizeDropdown.classList.toggle('hidden');
+            if (modelDropdown) modelDropdown.classList.add('hidden');
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (modelDropdown && !modelDropdown.contains(e.target)) modelDropdown.classList.add('hidden');
+        if (sizeDropdown && !sizeDropdown.contains(e.target)) sizeDropdown.classList.add('hidden');
+    });
+
+    function selectSize(size) {
+        selectedImageSize = size.id;
+        if (sizeName) sizeName.innerText = size.name;
+        if (sizeIcon) {
+            sizeIcon.setAttribute('data-lucide', size.icon);
+            sizeIcon.className = `w-4 h-4 lucide lucide-${size.icon}`;
+        }
+        if (sizeDropdown) sizeDropdown.classList.add('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function selectModel(model) {
+        selectedModel = model.id;
+        localStorage.setItem('boltSavedModel', selectedModel);
+        if (selectedName) selectedName.innerText = model.name;
+        if (selectedIcon) {
+            selectedIcon.setAttribute('data-lucide', model.icon);
+            selectedIcon.className = `w-4 h-4 ${model.color} lucide lucide-${model.icon}`;
+        }
+        if (modelDropdown) modelDropdown.classList.add('hidden');
+        if (window.lucide) lucide.createIcons();
+
+        if (model.id === 'art-gen-sys') {
+            if (sizeContainer) sizeContainer.classList.remove('hidden');
+        } else {
+            if (sizeContainer) sizeContainer.classList.add('hidden');
+        }
+    }
+
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebarClose = document.getElementById('sidebar-close');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    function toggleSidebar(show) {
+        if (!sidebar || !sidebarOverlay) return;
+        if (show) {
+            sidebar.classList.remove('-translate-x-full');
+            sidebarOverlay.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        }
+    }
+
+    if (sidebarToggle) sidebarToggle.onclick = () => toggleSidebar(true);
+    if (sidebarClose) sidebarClose.onclick = () => toggleSidebar(false);
+    if (sidebarOverlay) sidebarOverlay.onclick = () => toggleSidebar(false);
+
+    function saveToLocalStorage() {
+        if (chatHistory.length === 0) return;
+        let sessionIndex = allSessions.findIndex(s => s.id === currentSessionId);
+        const title = chatHistory[0].parts[0].text.substring(0, 30) + (chatHistory[0].parts[0].text.length > 30 ? "..." : "");
+        const sessionData = { id: currentSessionId, title: title, messages: chatHistory };
+        if (sessionIndex >= 0) allSessions[sessionIndex] = sessionData;
+        else allSessions.unshift(sessionData);
+        localStorage.setItem('boltChatSessions', JSON.stringify(allSessions));
+        renderHistoryList();
+    }
+
+    function renderHistoryList() {
+        const list = document.getElementById('history-list');
+        if (!list) return;
+        list.innerHTML = '';
+        if (allSessions.length === 0) {
+            list.innerHTML = '<div class="text-center text-[#5a5a5f] text-xs mt-4">No history yet</div>';
+            return;
+        }
+        allSessions.forEach(session => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `w-full flex items-center justify-between p-1.5 rounded-lg transition-colors group ${session.id === currentSessionId ? 'bg-white/10' : 'hover:bg-white/5'}`;
+            const btn = document.createElement('button');
+            btn.className = `flex-1 text-left px-2 py-1.5 text-sm flex items-center gap-2 ${session.id === currentSessionId ? 'text-white' : 'text-[#a0a0a5] group-hover:text-white'}`;
+            btn.innerHTML = `<i data-lucide="message-square" class="w-4 h-4 opacity-70"></i><span class="truncate w-[160px]">${session.title}</span>`;
+            btn.onclick = () => loadSession(session.id);
+            const delBtn = document.createElement('button');
+            delBtn.className = `p-1.5 rounded-md text-[#5a5a5f] hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all ${session.id === currentSessionId ? 'opacity-100 text-white/50 hover:text-red-400' : ''}`;
+            delBtn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>`;
+            delBtn.onclick = (e) => { e.stopPropagation(); deleteSession(session.id); };
+            itemDiv.appendChild(btn);
+            itemDiv.appendChild(delBtn);
+            list.appendChild(itemDiv);
+        });
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function deleteSession(id) {
+        if (confirm("আপনি কি নিশ্চিত যে এই চ্যাটটি মুছে ফেলতে চান?")) {
+            allSessions = allSessions.filter(s => s.id !== id);
+            localStorage.setItem('boltChatSessions', JSON.stringify(allSessions));
+            if (currentSessionId === id) newChat();
+            else renderHistoryList();
+        }
+    }
+
+    function loadSession(id) {
+        const session = allSessions.find(s => s.id === id);
+        if (!session) return;
+        currentSessionId = session.id;
+        chatHistory = [...session.messages];
+        if (chatHistoryDiv) chatHistoryDiv.innerHTML = '';
+        activateChatLayout();
+        chatHistory.forEach(msg => {
+            const isUser = msg.role === 'user';
+            addMessage(msg.parts[0].text, isUser ? 'user' : 'ai', !isUser, false);
+        });
+        renderHistoryList();
+        toggleSidebar(false);
+    }
+
+    function newChat() {
+        currentSessionId = Date.now().toString();
+        chatHistory = [];
+        if (chatHistoryDiv) chatHistoryDiv.innerHTML = '';
+        isChatActive = false;
+        if (heroBg) heroBg.classList.remove('hidden');
+        if (heroSection) heroSection.classList.remove('hidden');
+        if (chatHistoryDiv) chatHistoryDiv.classList.add('hidden');
+        renderHistoryList();
+        toggleSidebar(false);
+    }
+
+    function clearHistory() {
+        if (confirm("আপনি কি নিশ্চিত যে সম্পূর্ণ চ্যাট হিস্টোরি মুছে ফেলতে চান?")) {
+            allSessions = [];
+            localStorage.removeItem('boltChatSessions');
+            newChat();
+        }
+    }
+    renderHistoryList();
+
+    async function downloadImage(url) {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = 'ai-image-' + Date.now() + '.jpg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (err) {
+            console.error('Download failed', err);
+            window.open(url, '_blank');
+        }
+    }
+
+    if (userInput) {
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+            if (sendBtn) sendBtn.disabled = !this.value.trim();
+        });
+
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (sendBtn && !sendBtn.disabled) handleSend();
+            }
+        });
+    }
+
+    if (sendBtn) sendBtn.addEventListener('click', handleSend);
+
+    function activateChatLayout() {
+        if (!isChatActive) {
+            isChatActive = true;
+            if (heroBg) heroBg.classList.add('hidden');
+            if (heroSection) heroSection.classList.add('hidden');
+            if (chatHistoryDiv) chatHistoryDiv.classList.remove('hidden');
+        }
+    }
+
+    function scrollToBottom() {
+        const container = document.getElementById('main-container');
+        if (container) container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
+
+    function addMessage(text, sender, isMarkdown = false, isHtml = false) {
+        if (!chatHistoryDiv) return;
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+        msgDiv.style.cssText = `display:flex; width:100%; min-width:0; justify-content:${sender === 'user' ? 'flex-end' : 'flex-start'};`;
+        const bubble = document.createElement('div');
+        bubble.className = `max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 break-words ${sender === 'user' ? 'bg-[#ff0033] text-white' : 'bg-[#0b0d18] text-white border border-white/10 ai-message'}`;
+        if (sender === 'user') bubble.style.backgroundColor = AI_THEME_COLOR;
+
+        if (sender === 'user') {
+            bubble.innerHTML = `<p class="whitespace-pre-wrap text-[15px] leading-relaxed">${text}</p>`;
+        } else if (isHtml) {
+            bubble.innerHTML = text;
+        } else {
+            bubble.innerHTML = `<div class="text-[15px] leading-relaxed">${isMarkdown && window.marked ? marked.parse(text) : text}</div>`;
+        }
+        msgDiv.appendChild(bubble);
+        chatHistoryDiv.appendChild(msgDiv);
+        scrollToBottom();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    async function fetchWithRetry(url, options, retries = 4) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, options);
+                const data = await response.json();
+                if (response.ok) return { ok: true, data };
+                if (data.error?.code === 503 && i < retries - 1) {
+                    await sleep(2500);
+                    continue;
+                }
+                return { ok: false, data };
+            } catch (err) {
+                if (i === retries - 1) throw err;
+                await sleep(2500);
+            }
+        }
+    }
+
+    // =========================================================================
+    // 🧠 REAL-TIME SITE ANALYSIS ENGINE FOR AI
+    // =========================================================================
+    async function generateLiveSiteContextForAI() {
+        let ctx = `[রিয়েল-টাইম ওয়েবসাইট ডাটাবেস অ্যানালাইসিস - ${SITE_NAME}]\n`;
+        const noticeEl = document.getElementById('notice-text');
+        ctx += `• ওয়েবসাইট নোটিশ: ${noticeEl ? noticeEl.innerText : 'স্বাগতম আমাদের শপে'}\n`;
+        
+        try {
+            const paySnap = await db.collection('admin').doc('payment').get();
+            if (paySnap.exists) {
+                const p = paySnap.data();
+                ctx += `• পেমেন্ট নম্বর (Send Money): বিকাশ: ${p.bKash || 'N/A'}, নগদ: ${p.Nagad || 'N/A'}, রকেট: ${p.Rocket || 'N/A'}\n`;
+            }
+        } catch(e) {}
+
+        ctx += `\n[উপলব্ধ গেম ও প্যাকেজের তালিকা]:\n`;
+        for (let gId in gamesData) {
+            const g = gamesData[gId];
+            ctx += `• গেম: ${g.name} (টাইপ: ${g.type || 'UID'})\n`;
+        }
+
+        if (currentUser) {
+            ctx += `\n[বর্তমান ব্যবহারকারী]:\n`;
+            ctx += `• ইমেইল: ${currentUser.email}\n`;
+            ctx += `• বর্তমান ওয়ালেট ব্যালেন্স: ৳${userBalance}\n`;
+
+            try {
+                const orderSnap = await db.collection('orders').where('userId', '==', currentUser.uid).limit(4).get();
+                if (!orderSnap.empty) {
+                    ctx += `• সাম্প্রতিক অর্ডারসমূহ:\n`;
+                    orderSnap.forEach(doc => {
+                        const o = doc.data();
+                        ctx += `  - গেম: ${o.gameName}, প্যাকেজ: ${o.productName}, মূল্য: ৳${o.price}, স্ট্যাটাস: ${o.status}, আইডি: ${o.playerId || 'N/A'}\n`;
+                    });
+                } else {
+                    ctx += `• ব্যবহারকারীর কোনো সাম্প্রতিক অর্ডার নেই।\n`;
+                }
+            } catch(e) {}
+        } else {
+            ctx += `\n[ব্যবহারকারী বর্তমানে অ্যাকাউন্টে লগইন করা নেই। তাকে প্রয়োজনে লগইন করার পরামর্শ দিন]\n`;
+        }
+
+        ctx += `\n[নিয়মাবলী]: টাকা যোগ করতে Add Money-তে গিয়ে সেন্ড মানি করে TrxID দিতে হবে। স্পিন হুইলে ওয়েলকাম স্পিন একবার এবং ডেইলি স্পিন প্রতি ২৪ ঘণ্টায় একবার পাওয়া যায়।`;
+        return ctx;
+    }
+
+    async function handleSend() {
+        const text = userInput.value.trim();
+        if (!text) return;
+        activateChatLayout();
+        addMessage(text, 'user');
+        userInput.value = '';
+        userInput.style.height = '80px';
+        if (sendBtn) sendBtn.disabled = true;
+        if (userInput) userInput.disabled = true;
+        if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+        scrollToBottom();
+
+        if (selectedModel === 'art-gen-sys') {
+            const nsfwRegex = /\b(sex|sexy|nude|naked|porn|nsfw|boobs|erotic|ল্যাংটা|উলঙ্গ|সেক্সি)\b/i;
+            if (nsfwRegex.test(text)) {
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
+                addMessage("দুঃখিত, এই ধরনের ছবি তৈরি করা সম্পূর্ণভাবে নিষিদ্ধ।", 'ai', false, false);
+                if (sendBtn) sendBtn.disabled = false;
+                if (userInput) {
+                    userInput.disabled = false;
+                    userInput.focus();
+                }
+                return;
+            }
+
+            let basePrompt = text;
+            if (basePrompt.trim().toLowerCase() === 'bmw') {
+                basePrompt = "A stunning, highly modified BMW M5, black aggressive look, neon street lights reflection, cinematic shot";
+            } else if (basePrompt.toLowerCase().includes('bmw')) {
+                basePrompt = basePrompt.replace(/bmw/i, "beautiful BMW M5");
+            }
+            const enhancedPrompt = basePrompt + ", masterpiece, best quality, ultra-detailed, sharp focus, clear face, perfectly drawn, stunning color combination, perfect composition, vibrant colors, unblurred";
+            const encodedPrompt = encodeURIComponent(enhancedPrompt);
+            const randomSeed = Math.floor(Math.random() * 10000000);
+            const sizeConfig = imageSizes.find(s => s.id === selectedImageSize) || imageSizes[0];
+            const imgWidth = sizeConfig.width;
+            const imgHeight = sizeConfig.height;
+
+            const _p1 = ['h','t','t','p','s',':','/','/','i','m','a','g','e','.','p','o','l','l','i','n','a','t','i','o','n','s','.','a','i','/','p','r','o','m','p','t','/'].join('');
+            const _q1 = ['?','s','e','e','d','='].join('');
+            const _q2 = ['&','w','i','d','t','h','='].join('');
+            const _q3 = ['&','h','e','i','g','h','t','='].join('');
+            const _q4 = ['&','n','o','l','o','g','o','=','t','r','u','e','&','e','n','h','a','n','c','e','=','t','r','u','e','&','s','a','f','e','=','t','r','u','e'].join('');
+            const imageUrl = _p1 + encodedPrompt + _q1 + randomSeed + _q2 + imgWidth + _q3 + imgHeight + _q4;
+
+            if (loadingIndicator) loadingIndicator.classList.add('hidden');
+            const placeholderId = 'img-load-' + Date.now();
+            const placeholderHtml = `
+            <div id="${placeholderId}" style="aspect-ratio: ${imgWidth}/${imgHeight}; width:100%; max-width:384px; box-sizing:border-box;" class="relative w-full max-w-sm sm:max-w-md mx-auto rounded-xl overflow-hidden bg-[#0b0d18] border border-white/10 flex flex-col items-center justify-center shadow-2xl">
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent via-red-600/10 to-transparent w-full h-full animate-[scan_2s_linear_infinite]"></div>
+                <div class="relative z-10 p-3 rounded-full bg-red-600/20 animate-pulse"><i data-lucide="image" class="w-8 h-8 text-red-500"></i></div>
+            </div>`;
+            addMessage(placeholderHtml, 'ai', false, true);
+            if (window.lucide) lucide.createIcons();
+
+            const img = new Image();
+            img.onload = () => {
+                const finalHtml = `
+                <div class="relative group w-full max-w-sm sm:max-w-md mx-auto" style="width:100%; max-width:384px; box-sizing:border-box;">
+                    <img src="${imageUrl}" alt="Generated Image" class="w-full h-auto rounded-lg shadow-lg object-cover" style="max-width:100%; height:auto; display:block;" />
+                    <div class="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+                        <button onclick="downloadImage('${imageUrl}')" class="bg-black/60 hover:bg-black/80 backdrop-blur-md p-2.5 rounded-full text-white shadow-xl flex items-center justify-center active:scale-95 transition-all">
+                            <i data-lucide="download" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>`;
+                const placeholderEl = document.getElementById(placeholderId);
+                if (placeholderEl && placeholderEl.parentElement) {
+                    placeholderEl.parentElement.innerHTML = finalHtml;
+                    if (window.lucide) lucide.createIcons();
+                    scrollToBottom();
+                }
+            };
+            img.onerror = () => {
+                const placeholderEl = document.getElementById(placeholderId);
+                if (placeholderEl && placeholderEl.parentElement) {
+                    placeholderEl.parentElement.innerHTML = `<span class="text-red-400 text-sm">Failed to generate image. Please try again.</span>`;
+                }
+            };
+            img.src = imageUrl;
+
+        } else {
+            try {
+                if (!API_KEY) {
+                    if (loadingIndicator) loadingIndicator.classList.add('hidden');
+                    addMessage("⚠️ অ্যাডমিন প্যানেল থেকে Gemini API Key সেট করা হয়নি। দয়া করে অ্যাডমিন প্যানেলের Settings ➔ AI Assistant-এ গিয়ে API Key দিন।", 'ai', false);
+                    if (userInput) {
+                        userInput.disabled = false;
+                        userInput.focus();
+                    }
+                    return;
+                }
+
+                const liveSiteContext = await generateLiveSiteContextForAI();
+                const currentHistory = [...chatHistory, { role: "user", parts: [{ text }] }];
+                const _g1 = ['h','t','t','p','s',':','/','/','g','e','n','e','r','a','t','i','v','e','l','a','n','g','u','a','g','e','.','g','o','o','g','l','e','a','p','i','s','.','c','o','m','/','v','1','b','e','t','a','/','m','o','d','e','l','s','/'].join('');
+                const _g2 = [':','g','e','n','e','r','a','t','e','C','o','n','t','e','n','t','?','k','e','y','='].join('');
+                const url = _g1 + selectedModel + _g2 + API_KEY;
+
+                const systemPrompt = `You are ${SITE_NAME}, the official intelligent AI customer assistant of this game top-up website.
+You must always answer in polite, natural Bengali (বাংলা) unless requested otherwise.
+You have REAL-TIME access to this live website database and user status:
+${liveSiteContext}
+
+Instructions:
+1. Always give 100% accurate information based on the live database provided above.
+2. If the user asks about their balance, check the live balance above and reply.
+3. If the user asks about their orders, check their recent orders and explain the status (e.g. Pending, Completed).
+4. If the user asks how to add money, clearly explain Send Money to the payment numbers and entering TrxID.
+5. If the user asks about packages or prices, quote from the available games.
+6. For general or coding questions, provide robust, best-practice answers. Be extremely polite, professional, and helpful.`;
+
+                const payload = {
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    contents: currentHistory
+                };
+
+                const options = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                };
+
+                const result = await fetchWithRetry(url, options, 4);
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
+
+                if (result.ok) {
+                    const aiText = result.data.candidates[0].content.parts[0].text;
+                    addMessage(aiText, 'ai', true);
+                    chatHistory.push({ role: "user", parts: [{ text }] });
+                    chatHistory.push({ role: "model", parts: [{ text: aiText }] });
+                    saveToLocalStorage();
+                } else {
+                    let errorMsg = `Error: ${result.data.error?.message || 'Server Error'}`;
+                    if (result.data.error?.code === 503) {
+                        errorMsg = `Error 503: Google's AI Server is busy.\n\n*System tried 4 times but failed. Please try again later.*`;
+                    }
+                    addMessage(errorMsg, 'ai', true);
+                }
+            } catch (error) {
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
+                addMessage(`Network error: ${error.message}`, 'ai', false);
+            }
+        }
+        if (userInput) {
+            userInput.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    // =========================================================================
+    // 🎡 FAIR & UNBIASED DUAL-CANVAS SPIN ENGINE (NO RIGGING - 100% ACCURATE)
+    // =========================================================================
+    let currentSpinMode = 'signup';
+    let isSpinWheelRunning = false;
+    let accumulatedSpinAngle = 0;
+
+    // ডিফল্ট নিরপেক্ষ স্লট
+    let activeSpinWheelSlots = [
+        { label: "৳১", amount: 1, color: "#E11D48", weight: 20 },
+        { label: "৳২", amount: 2, color: "#EA580C", weight: 20 },
+        { label: "৳৩", amount: 3, color: "#EAB308", weight: 20 },
+        { label: "৳৪", amount: 4, color: "#10B981", weight: 20 },
+        { label: "৳৫", amount: 5, color: "#06B6D4", weight: 20 }
+    ];
+
+    // অ্যাডমিন প্যানেল থেকে স্লট কনফিগারেশন থাকলে তা সিঙ্ক করা
+    function loadLiveSpinSlotsFromDB() {
+        db.collection('settings').doc('spin_wheel').get().then(doc => {
+            if (doc.exists) {
+                const data = doc.data();
+                const modeData = data[currentSpinMode];
+                if (modeData && modeData.slots && modeData.slots.length >= 2) {
+                    activeSpinWheelSlots = modeData.slots.map(s => ({
+                        label: s.label || '৳' + (s.rewardValue || 0),
+                        amount: parseFloat(s.rewardValue) || 0,
+                        color: s.color || '#F49E0B',
+                        weight: parseInt(s.weight) || 20
+                    }));
+                }
+            }
+            drawSpinCanvasWheel();
+        }).catch(() => {
+            drawSpinCanvasWheel();
+        });
+    }
+
     async function checkAndTriggerAutoSpinPopup(uid) {
         if (!uid) return;
         try {
@@ -3794,22 +4170,17 @@ const num = data[fieldKey] || "Not Available";
             if (!userDoc.exists) return;
             const data = userDoc.data();
 
-            // কন্ডিশন ১: সাইন-আপ স্পিন কি পূর্বে নেওয়া হয়েছে?
             if (data.hasClaimedSignupSpin !== true) {
-                // পূর্বে কখনো নেয়নি -> ওয়েলকাম স্পিন পপ-আপ ওপেন হবে
                 currentSpinMode = 'signup';
                 openSpinModalDirectly('signup');
                 return;
             }
 
-            // কন্ডিশন ২: ডেইলি স্পিন চেক (২৪ ঘণ্টা লজিক)
             const lastDailyTime = data.lastDailySpinTime || 0;
             const now = Date.now();
-            const elapsed = now - lastDailyTime;
             const twentyFourHours = 24 * 60 * 60 * 1000;
 
-            if (elapsed >= twentyFourHours) {
-                // ২৪ ঘণ্টা পার হয়ে গেছে এবং ইউজার এখনো স্পিন করেনি -> পপ-আপ ওপেন হবে
+            if (now - lastDailyTime >= twentyFourHours) {
                 currentSpinMode = 'daily';
                 openSpinModalDirectly('daily');
             }
@@ -3818,8 +4189,24 @@ const num = data[fieldKey] || "Not Available";
         }
     }
 
-    // ২. মোডাল পপ-আপ ওপেন করা
+    function switchSpinType(type) {
+        currentSpinMode = type;
+        const btnSignup = document.getElementById('tab-btn-signup-spin');
+        const btnDaily = document.getElementById('tab-btn-daily-spin');
+        if (btnSignup && btnDaily) {
+            if (type === 'signup') {
+                btnSignup.className = "flex-1 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-800 shadow-sm transition";
+                btnDaily.className = "flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-600 transition";
+            } else {
+                btnDaily.className = "flex-1 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-800 shadow-sm transition";
+                btnSignup.className = "flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-600 transition";
+            }
+        }
+        loadLiveSpinSlotsFromDB();
+    }
+
     function openSpinModalDirectly(mode) {
+        currentSpinMode = mode;
         const modal = document.getElementById('spin-popup-modal');
         const welcomeCard = document.getElementById('spin-welcome-card');
         const boardCard = document.getElementById('spin-board-card');
@@ -3839,11 +4226,9 @@ const num = data[fieldKey] || "Not Available";
                 <li>জেতা টাকা সরাসরি ওয়ালেট ব্যালেন্সে যোগ হবে।</li>
                 <li>ব্যালেন্স দিয়ে যেকোনো প্রডাক্ট কেনা যাবে।</li>
             `;
-            // সাইন-আপে আগে কার্ড দেখাবে তারপর বাটনে ক্লিক করলে হুইল
             welcomeCard.classList.remove('hidden');
             boardCard.classList.add('hidden');
         } else {
-            // ডেইলি স্পিনে সরাসরি হুইল বোর্ড লোড হবে
             boardHeading.innerText = "Daily Free Spin ⚡";
             boardSubtext.innerText = "প্রতি ২৪ ঘণ্টায় একবার ফ্রি স্পিন করে জিতে নিন আকর্ষণীয় বোনাস!";
             rulesList.innerHTML = `
@@ -3853,76 +4238,73 @@ const num = data[fieldKey] || "Not Available";
             `;
             welcomeCard.classList.add('hidden');
             boardCard.classList.remove('hidden');
-            setTimeout(drawSpinCanvasWheel, 50);
         }
 
         modal.classList.remove('hidden');
+        loadLiveSpinSlotsFromDB();
     }
 
-    // ইউজার যদি "এখনই স্পিন করুন" প্রেস করে
     function proceedToSpinBoard() {
         document.getElementById('spin-welcome-card').classList.add('hidden');
         document.getElementById('spin-board-card').classList.remove('hidden');
         drawSpinCanvasWheel();
     }
 
-    // ইউজার স্পিন না করে কেটে দিলে (X বাটন)
     function closeSpinModalManually() {
-        // ডাটাবেসে কোনো টাইম আপডেট হবে না! ফলে ইউজার আবার ঢুকলে আবার পপ-আপ আসবে
         document.getElementById('spin-popup-modal').classList.add('hidden');
     }
 
-    // ৩. ক্যানভাসে হুবহু স্ক্রিনশটের মতো হুইল তৈরি
+    // উভয় ক্যানভাসে (পেজ এবং পপ-আপ) নিখুঁতভাবে চাকা আঁকার ফাংশন
     function drawSpinCanvasWheel() {
-        const canvas = document.getElementById('lucky-wheel-canvas');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const numSegments = activeSpinWheelSlots.length;
-        const arc = (2 * Math.PI) / numSegments;
-        const radius = canvas.width / 2;
+        const canvases = [
+            document.getElementById('lucky-wheel-canvas'),
+            document.getElementById('lucky-wheel-canvas-modal')
+        ].filter(Boolean);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.translate(radius, radius);
-        ctx.rotate(wheelCurrentRotationAngle);
+        canvases.forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            const numSegments = activeSpinWheelSlots.length;
+            const arc = (2 * Math.PI) / numSegments;
+            const radius = canvas.width / 2;
 
-        for (let i = 0; i < numSegments; i++) {
-            const angle = i * arc;
-            const slot = activeSpinWheelSlots[i];
-
-            // সেগমেন্ট স্লাইস
-            ctx.beginPath();
-            ctx.fillStyle = slot.color;
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, radius - 2, angle, angle + arc);
-            ctx.lineTo(0, 0);
-            ctx.fill();
-
-            // বর্ডার
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.stroke();
-
-            // টেক্সট (যেমন ৳১, ৳২)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 16px sans-serif';
-            ctx.rotate(angle + arc / 2);
-            ctx.textAlign = 'right';
-            ctx.fillText(slot.label, radius - 26, 6);
+            ctx.translate(radius, radius);
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * arc;
+                const slot = activeSpinWheelSlots[i];
+
+                ctx.beginPath();
+                ctx.fillStyle = slot.color;
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius - 2, angle, angle + arc);
+                ctx.lineTo(0, 0);
+                ctx.fill();
+
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.stroke();
+
+                ctx.save();
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.rotate(angle + arc / 2);
+                ctx.textAlign = 'right';
+                ctx.fillText(slot.label, radius - 24, 6);
+                ctx.restore();
+            }
             ctx.restore();
-        }
-        ctx.restore();
+        });
     }
 
-    // ৪. স্পিন অ্যাকশন ও নিখুঁত এঙ্গেল ক্যালকুলেশন
+    // ১০০% নিরপেক্ষ র‍্যান্ডম স্পিন ও কাঁটায় কাঁটায় থামার নিখুঁত ম্যাথ
     async function executeSpinAction() {
         if (isSpinWheelRunning || !currentUser) return;
 
-        const spinBtn = document.getElementById('btn-spin-action');
+        const allSpinButtons = document.querySelectorAll('#btn-spin-action, #btn-spin-action-modal, .btn-spin-action-all');
         const userRef = db.collection('users').doc(currentUser.uid);
 
-        // ভ্যালিডেশন চেক
         const snap = await userRef.get();
         const uData = snap.data() || {};
 
@@ -3939,46 +4321,51 @@ const num = data[fieldKey] || "Not Available";
             }
         }
 
-        // উইনিং ওয়েইট (Probability) হিসাব
-        let totalW = 0;
-        activeSpinWheelSlots.forEach(s => totalW += s.weight);
-        let rand = Math.random() * totalW;
-        let selectedIndex = 0;
+        // নিরপেক্ষ র‍্যান্ডম নির্বাচন (ক্যাটাগরি ওয়েইট অনুসারে)
+        let totalWeight = 0;
+        activeSpinWheelSlots.forEach(s => totalWeight += (s.weight || 20));
+        let randomNum = Math.random() * totalWeight;
+        let wonIndex = 0;
+
         for (let i = 0; i < activeSpinWheelSlots.length; i++) {
-            rand -= activeSpinWheelSlots[i].weight;
-            if (rand <= 0) {
-                selectedIndex = i;
+            randomNum -= (activeSpinWheelSlots[i].weight || 20);
+            if (randomNum <= 0) {
+                wonIndex = i;
                 break;
             }
         }
 
-        const wonSlot = activeSpinWheelSlots[selectedIndex];
+        const wonSlot = activeSpinWheelSlots[wonIndex];
         const numSlots = activeSpinWheelSlots.length;
-        const segmentDeg = 360 / numSlots;
+        const segmentDegree = 360 / numSlots;
 
-        // 🎯 টপ পয়েন্টার (12 o'clock / 270°) এ কাঁটায় কাঁটায় থামার ডিগ্রি সমীকরণ
-        // ক্যানভাসে 0° মানে 3 o'clock। টপ পয়েন্টার হচ্ছে 270° (বা -90°)।
-        const sliceCenterDeg = selectedIndex * segmentDeg + (segmentDeg / 2);
-        const targetStopDeg = (270 - sliceCenterDeg + 360) % 360;
-        const fullRotations = 360 * 7; // ৭ পাক পূর্ণ ঘূর্ণন
-        const finalDeg = fullRotations + targetStopDeg;
+        // 🎯 টপ পয়েন্টার (12 o'clock = 270°) এ কাঁটায় কাঁটায় থামার সমীকরণ
+        // স্লটের মাঝামাঝি থামবে
+        const sliceCenter = wonIndex * segmentDegree + (segmentDegree / 2);
+        const targetStopAngle = (270 - sliceCenter + 360) % 360;
+
+        // পূর্ণ ৬ পাক ঘূর্ণন + টার্গেট এঙ্গেল
+        const currentMod = accumulatedSpinAngle % 360;
+        const additionalRot = ((targetStopAngle - currentMod + 360) % 360);
+        accumulatedSpinAngle += (360 * 6) + additionalRot;
 
         isSpinWheelRunning = true;
-        spinBtn.disabled = true;
-        spinBtn.classList.add('opacity-60');
+        allSpinButtons.forEach(b => { b.disabled = true; b.classList.add('opacity-60'); });
 
-        const canvas = document.getElementById('lucky-wheel-canvas');
-        canvas.style.transition = 'transform 4.5s cubic-bezier(0.15, 0.9, 0.2, 1)';
-        canvas.style.transform = `rotate(${finalDeg}deg)`;
+        const canvases = [
+            document.getElementById('lucky-wheel-canvas'),
+            document.getElementById('lucky-wheel-canvas-modal')
+        ].filter(Boolean);
+
+        canvases.forEach(cv => {
+            cv.style.transition = 'transform 4.5s cubic-bezier(0.12, 0.9, 0.18, 1)';
+            cv.style.transform = `rotate(${accumulatedSpinAngle}deg)`;
+        });
 
         setTimeout(async () => {
             isSpinWheelRunning = false;
-            canvas.style.transition = 'none';
-            wheelCurrentRotationAngle = (finalDeg % 360) * (Math.PI / 180);
-            drawSpinCanvasWheel();
 
             try {
-                // ফায়ারস্টোর অ্যাটমিক ট্রানজ্যাকশন: টাকা যোগ এবং টাইমস্ট্যাম্প লক
                 await db.runTransaction(async (t) => {
                     const freshDoc = await t.get(userRef);
                     const curBal = freshDoc.data()?.balance || 0;
@@ -3987,15 +4374,14 @@ const num = data[fieldKey] || "Not Available";
                     };
 
                     if (currentSpinMode === 'signup') {
-                        updates.hasClaimedSignupSpin = true; // জীবনেও আর কোনোদিন আসবে না
+                        updates.hasClaimedSignupSpin = true;
                     } else {
-                        updates.lastDailySpinTime = Date.now(); // ঠিক ২৪ ঘণ্টার জন্য লক
+                        updates.lastDailySpinTime = Date.now();
                     }
 
                     t.update(userRef, updates);
                 });
 
-                // হিস্টোরিতে লগ রেকর্ড
                 db.collection('spin_rewards').add({
                     userId: currentUser.uid,
                     userEmail: currentUser.email || '',
@@ -4006,7 +4392,6 @@ const num = data[fieldKey] || "Not Available";
                     timestampMs: Date.now()
                 }).catch(() => {});
 
-                // ফলাফল প্রদর্শন ও মোডাল বন্ধ
                 document.getElementById('spin-popup-modal').classList.add('hidden');
 
                 Swal.fire({
@@ -4021,10 +4406,9 @@ const num = data[fieldKey] || "Not Available";
                 console.error("Spin balance update error:", err);
                 Swal.fire('Error', 'ব্যালেন্স আপডেট করতে ব্যর্থ হয়েছে।', 'error');
             } finally {
-                spinBtn.disabled = false;
-                spinBtn.classList.remove('opacity-60');
+                allSpinButtons.forEach(b => { b.disabled = false; b.classList.remove('opacity-60'); });
             }
-        }, 4600);
+        }, 4700);
     }
 
 </script>
@@ -4099,7 +4483,7 @@ const num = data[fieldKey] || "Not Available";
                 <div class="absolute -top-1.5 left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[18px] border-t-amber-600 filter drop-shadow"></div>
 
                 <!-- Circular Wheel Canvas -->
-                <canvas id="lucky-wheel-canvas" width="240" height="240" class="rounded-full shadow-md"></canvas>
+                <canvas id="lucky-wheel-canvas-modal" width="240" height="240" class="lucky-wheel-canvas rounded-full shadow-md"></canvas>
                 
                 <!-- Center Cap Dot -->
                 <div class="absolute w-8 h-8 rounded-full bg-white shadow-md border-2 border-gray-100 flex items-center justify-center pointer-events-none z-10">
@@ -4108,7 +4492,7 @@ const num = data[fieldKey] || "Not Available";
             </div>
 
             <!-- Spin Button -->
-            <button id="btn-spin-action" onclick="executeSpinAction()" class="w-full bg-[#1d63ed] hover:bg-blue-700 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg transition text-sm tracking-wide mt-3 mb-4 flex items-center justify-center gap-2">
+            <button id="btn-spin-action-modal" onclick="executeSpinAction()" class="btn-spin-action-all w-full bg-[#1d63ed] hover:bg-blue-700 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg transition text-sm tracking-wide mt-3 mb-4 flex items-center justify-center gap-2">
                 স্পিন করুন 🎡
             </button>
 
