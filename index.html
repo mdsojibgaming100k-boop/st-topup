@@ -1121,6 +1121,27 @@
     let selectedGameId = null;
     let selectedGameName = "";
 
+    // 🤖 অ্যাডমিন কনফিগারেবল টেলিগ্রাম অ্যালার্ট বট
+    let telegramBotToken = "8694471350:AAGXNSPvjPsSEWyO0L3tkhFshr6dh8mYkR0";
+    let telegramChatId = "7153773488";
+
+    async function sendTelegramNotification(htmlMessage) {
+        if (!telegramBotToken || !telegramChatId) return;
+        try {
+            await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: telegramChatId,
+                    text: htmlMessage,
+                    parse_mode: 'HTML'
+                })
+            });
+        } catch (e) {
+            console.warn("Telegram Alert failed to send:", e);
+        }
+    }
+
     // =========================================================================
     // 🔔 TOUR FF EXACT LIVE PUSH NOTIFICATION ENGINE (PURE PUSH - NO VOICE)
     // =========================================================================
@@ -1426,6 +1447,14 @@
                 isAutoPayEnabled = data.autoPayEnabled === true;
                 otpScriptUrl = data.otpScriptUrl || "";
                 otpSenderEmail = data.otpSenderEmail || "support@topup.shop";
+
+                // টেলিগ্রাম বট টোকেন ও চ্যাট আইডি লোড (অ্যাডমিনের মান থাকলে সেটি প্রাধান্য পাবে)
+                if (data.telegramBotToken && data.telegramBotToken.trim()) {
+                    telegramBotToken = data.telegramBotToken.trim();
+                }
+                if (data.telegramChatId && String(data.telegramChatId).trim()) {
+                    telegramChatId = String(data.telegramChatId).trim();
+                }
                 
                 document.getElementById('header-logo-img').src = logoUrl;
                 document.getElementById('about-logo-img').src = logoUrl;
@@ -1798,6 +1827,17 @@
                 createdAt: new Date()
             });
 
+            // 🤖 টেলিগ্রাম নতুন ইউজার অ্যালার্ট
+            sendTelegramNotification(
+                `👤 <b>নতুন ইউজার রেজিস্ট্রেশন!</b>\n` +
+                `━━━━━━━━━━━━━━━━━━\n` +
+                `📛 <b>নাম:</b> ${pendingSignupData.name}\n` +
+                `📧 <b>ইমেইল:</b> ${pendingSignupData.email}\n` +
+                `📱 <b>ফোন:</b> ${pendingSignupData.phone || 'N/A'}\n` +
+                `⏰ <b>সময়:</b> ${new Date().toLocaleString()}\n` +
+                `━━━━━━━━━━━━━━━━━━`
+            );
+
             pendingSignupData = null;
             document.getElementById('reg-otp').value = '';
             document.getElementById('reg-name').value = '';
@@ -1938,6 +1978,11 @@
             
             loadUserData(user.uid);
             calculateUserStats(user.uid);
+
+            // ⚡ সাইটে প্রবেশের সাথে সাথে স্বয়ংক্রিয় স্পিন পপ-আপ যাচাই ও চালু
+            setTimeout(() => {
+                checkAndTriggerAutoSpinPopup(user.uid);
+            }, 800);
         } else {
             currentUser = null;
             document.getElementById('header-login-container').classList.remove('hidden');
@@ -2550,6 +2595,20 @@
             });
 
             notifyAdminNewOrder("🎟️ ভাউচার কোড বিক্রয়!", `${currentUser.email || 'ইউজার'} ${selectedGameName} এর ৳${selectedProduct.price} টাকার ভাউচার কোড ক্রয় করেছে।`);
+            
+            // 🤖 টেলিগ্রাম নোটিফিকেশন ডিসপ্যাচ
+            sendTelegramNotification(
+                `🎟️ <b>ভাউচার কোড ক্রয় সম্পন্ন!</b>\n` +
+                `━━━━━━━━━━━━━━━━━━\n` +
+                `🎮 <b>গেম:</b> ${selectedGameName}\n` +
+                `📦 <b>প্যাকেজ:</b> ${selectedProduct.name}\n` +
+                `💰 <b>মূল্য:</b> ৳${selectedProduct.price}\n` +
+                `👤 <b>ইউজার:</b> ${currentUser.email}\n` +
+                `🔑 <b>ভাউচার কোড:</b> <code>${voucherCode}</code>\n` +
+                `⏰ <b>সময়:</b> ${new Date().toLocaleString()}\n` +
+                `━━━━━━━━━━━━━━━━━━`
+            );
+
             Swal.fire('Success', 'Voucher Purchased! Check History for Code.', 'success');
             showSec('home');
 
@@ -2568,8 +2627,23 @@
                 status: 'pending', date: new Date()
             });
         })
-        .then(() => {
+        .then((orderRef) => {
             notifyAdminNewOrder("🚨 নতুন UID টপ-আপ অর্ডার!", `${currentUser.email || 'ইউজার'} একটি ৳${selectedProduct.price} টাকার অর্ডার দিয়েছে (${selectedGameName} - ${selectedProduct.name})।`);
+            
+            // 🤖 টেলিগ্রাম নোটিফিকেশন ডিসপ্যাচ
+            sendTelegramNotification(
+                `🚨 <b>নতুন টপ-আপ অর্ডার!</b>\n` +
+                `━━━━━━━━━━━━━━━━━━\n` +
+                `🎮 <b>গেম/সার্ভিস:</b> ${selectedGameName}\n` +
+                `📦 <b>প্যাকেজ:</b> ${selectedProduct.name}\n` +
+                `💰 <b>মূল্য:</b> ৳${selectedProduct.price}\n` +
+                `🆔 <b>প্লেয়ার আইডি / লিংক:</b> <code>${playerId}</code>\n` +
+                `👤 <b>ইউজার:</b> ${currentUser.email}\n` +
+                `📋 <b>অর্ডার আইডি:</b> #${orderRef.id.slice(-6).toUpperCase()}\n` +
+                `⏰ <b>সময়:</b> ${new Date().toLocaleString()}\n` +
+                `━━━━━━━━━━━━━━━━━━`
+            );
+
             Swal.fire('Success', 'Order Placed Successfully!', 'success');
             showSec('home');
         })
@@ -2619,6 +2693,20 @@
             const encodedUrl = `https://wa.me/${targetWa}?text=${encodeURIComponent(waText)}`;
 
             notifyAdminNewOrder("👑 নতুন গিল্ড গ্লরি বট অর্ডার!", `${currentUser.email} একটি ৳${selectedProduct.price} টাকার বট অর্ডার করেছে (${selectedProduct.name})।`);
+
+            // 🤖 টেলিগ্রাম বট নোটিফিকেশন
+            sendTelegramNotification(
+                `👑 <b>নতুন গিল্ড গ্লরি বট অর্ডার!</b>\n` +
+                `━━━━━━━━━━━━━━━━━━\n` +
+                `🎮 <b>সার্ভিস:</b> ${selectedGameName}\n` +
+                `📦 <b>প্যাকেজ:</b> ${selectedProduct.name}\n` +
+                `💰 <b>মূল্য:</b> ৳${selectedProduct.price}\n` +
+                `🆔 <b>প্লেয়ার / WhatsApp তথ্য:</b> ${playerInfo}\n` +
+                `👤 <b>ইউজার:</b> ${currentUser.email}\n` +
+                `📋 <b>অর্ডার আইডি:</b> #${orderRef.id.slice(-6).toUpperCase()}\n` +
+                `⏰ <b>সময়:</b> ${now.toLocaleString()}\n` +
+                `━━━━━━━━━━━━━━━━━━`
+            );
 
             Swal.fire({
                 icon: 'success',
@@ -3422,6 +3510,20 @@ const num = data[fieldKey] || "Not Available";
             method: currentPaymentMethod
         }).then(() => {
             notifyAdminNewOrder("💰 নতুন ডিপোজিট রিকোয়েস্ট!", `মেথড: ${currentPaymentMethod} | টাকা: ৳${amount} | TrxID: ${trxId.toUpperCase()} (${currentUser.email})`, 'deposit');
+
+            // 🤖 টেলিগ্রাম ডিপোজিট অ্যালার্ট
+            sendTelegramNotification(
+                `💰 <b>নতুন ডিপোজিট রিকোয়েস্ট (Manual)!</b>\n` +
+                `━━━━━━━━━━━━━━━━━━\n` +
+                `💳 <b>মেথড:</b> ${currentPaymentMethod}\n` +
+                `💵 <b>টাকা:</b> ৳${amount}\n` +
+                `🔢 <b>TrxID:</b> <code>${trxId.toUpperCase()}</code>\n` +
+                `👤 <b>ইউজার:</b> ${currentUser.email}\n` +
+                `⏰ <b>সময়:</b> ${new Date().toLocaleString()}\n` +
+                `━━━━━━━━━━━━━━━━━━\n` +
+                `⚠️ <i>অ্যাডমিন প্যানেল থেকে TrxID মিলিয়ে অ্যাপ্রুভ করুন।</i>`
+            );
+
             Swal.fire({
                 title: 'Request Submitted', 
                 text: 'Your deposit request has been sent. Please wait for admin approval.', 
@@ -3563,6 +3665,19 @@ const num = data[fieldKey] || "Not Available";
                     date: now
                 });
 
+                // 🤖 টেলিগ্রাম অটো-পেমেন্ট সফল অ্যালার্ট
+                sendTelegramNotification(
+                    `⚡ <b>অটো-পেমেন্ট সফল (Auto Approved)!</b>\n` +
+                    `━━━━━━━━━━━━━━━━━━\n` +
+                    `💳 <b>মেথড:</b> ${currentPaymentMethod} (Auto)\n` +
+                    `💵 <b>টাকার পরিমাণ:</b> ৳${rechargeAmount}\n` +
+                    `🔢 <b>TrxID:</b> <code>${cleanTrxId}</code>\n` +
+                    `👤 <b>ইউজার:</b> ${currentUser.email}\n` +
+                    `⏰ <b>সময়:</b> ${now.toLocaleString()}\n` +
+                    `━━━━━━━━━━━━━━━━━━\n` +
+                    `✅ <i>টাকা স্বয়ংক্রিয়ভাবে ইউজারের ওয়ালেটে যোগ হয়েছে।</i>`
+                );
+
                 delete userPaymentAttemptCounts[cleanTrxId];
                 document.getElementById('pay-trx-input').value = '';
 
@@ -3655,6 +3770,263 @@ const num = data[fieldKey] || "Not Available";
         }
     }
 
+    // =========================================================================
+    // 🎡 PURE POPUP SPIN ENGINE (SIGNUP ONCE + 24H DAILY AUTO-PROMPT)
+    // =========================================================================
+    let currentSpinMode = null; // 'signup' | 'daily'
+    let isSpinWheelRunning = false;
+    let wheelCurrentRotationAngle = 0;
+
+    // স্ক্রিনশটের হুবহু ৫টি রঙিন স্লট (ডিফল্ট ফলব্যাক)
+    const activeSpinWheelSlots = [
+        { label: "৳১", amount: 1, color: "#E11D48", weight: 35 }, // Crimson Red
+        { label: "৳২", amount: 2, color: "#EA580C", weight: 25 }, // Orange
+        { label: "৳৩", amount: 3, color: "#EAB308", weight: 20 }, // Golden Yellow
+        { label: "৳৪", amount: 4, color: "#10B981", weight: 15 }, // Emerald Green
+        { label: "৳৫", amount: 5, color: "#06B6D4", weight: 5 }   // Cyan
+    ];
+
+    // ১. সাইটে ঢোকার সাথে সাথে চেক হবে পপ-আপ আসবে কি না
+    async function checkAndTriggerAutoSpinPopup(uid) {
+        if (!uid) return;
+        try {
+            const userDoc = await db.collection('users').doc(uid).get();
+            if (!userDoc.exists) return;
+            const data = userDoc.data();
+
+            // কন্ডিশন ১: সাইন-আপ স্পিন কি পূর্বে নেওয়া হয়েছে?
+            if (data.hasClaimedSignupSpin !== true) {
+                // পূর্বে কখনো নেয়নি -> ওয়েলকাম স্পিন পপ-আপ ওপেন হবে
+                currentSpinMode = 'signup';
+                openSpinModalDirectly('signup');
+                return;
+            }
+
+            // কন্ডিশন ২: ডেইলি স্পিন চেক (২৪ ঘণ্টা লজিক)
+            const lastDailyTime = data.lastDailySpinTime || 0;
+            const now = Date.now();
+            const elapsed = now - lastDailyTime;
+            const twentyFourHours = 24 * 60 * 60 * 1000;
+
+            if (elapsed >= twentyFourHours) {
+                // ২৪ ঘণ্টা পার হয়ে গেছে এবং ইউজার এখনো স্পিন করেনি -> পপ-আপ ওপেন হবে
+                currentSpinMode = 'daily';
+                openSpinModalDirectly('daily');
+            }
+        } catch (e) {
+            console.warn("Spin popup check error:", e);
+        }
+    }
+
+    // ২. মোডাল পপ-আপ ওপেন করা
+    function openSpinModalDirectly(mode) {
+        const modal = document.getElementById('spin-popup-modal');
+        const welcomeCard = document.getElementById('spin-welcome-card');
+        const boardCard = document.getElementById('spin-board-card');
+        const mainTitle = document.getElementById('spin-modal-main-title');
+        const subTitle = document.getElementById('spin-modal-sub-title');
+        const boardHeading = document.getElementById('spin-board-heading');
+        const boardSubtext = document.getElementById('spin-board-subtext');
+        const rulesList = document.getElementById('spin-board-rules');
+
+        if (mode === 'signup') {
+            mainTitle.innerText = "স্বাগতম! 🎉";
+            subTitle.innerHTML = "অ্যাকাউন্ট তৈরি সম্পন্ন। আপনার জন্য একটা <b>ফ্রি স্পিন</b> অপেক্ষা করছে — ঘুরিয়ে বোনাস নিন!";
+            boardHeading.innerText = "Spin & Win";
+            boardSubtext.innerText = "স্পিন করুন, ওয়ালেটে বোনাস নিন — প্রতি অ্যাকাউন্টে একবার।";
+            rulesList.innerHTML = `
+                <li>প্রতিটি অ্যাকাউন্ট একবারই স্পিন করতে পারবে।</li>
+                <li>জেতা টাকা সরাসরি ওয়ালেট ব্যালেন্সে যোগ হবে।</li>
+                <li>ব্যালেন্স দিয়ে যেকোনো প্রডাক্ট কেনা যাবে।</li>
+            `;
+            // সাইন-আপে আগে কার্ড দেখাবে তারপর বাটনে ক্লিক করলে হুইল
+            welcomeCard.classList.remove('hidden');
+            boardCard.classList.add('hidden');
+        } else {
+            // ডেইলি স্পিনে সরাসরি হুইল বোর্ড লোড হবে
+            boardHeading.innerText = "Daily Free Spin ⚡";
+            boardSubtext.innerText = "প্রতি ২৪ ঘণ্টায় একবার ফ্রি স্পিন করে জিতে নিন আকর্ষণীয় বোনাস!";
+            rulesList.innerHTML = `
+                <li>প্রতি ২৪ ঘণ্টায় একবার ফ্রি স্পিন পাওয়া যাবে।</li>
+                <li>জেতা টাকা সাথে সাথে ব্যালেন্সে যুক্ত হবে।</li>
+                <li>স্পিন না দিয়ে কেটে দিলে পুনরায় প্রবেশের সময় আবার পপ-আপ আসবে।</li>
+            `;
+            welcomeCard.classList.add('hidden');
+            boardCard.classList.remove('hidden');
+            setTimeout(drawSpinCanvasWheel, 50);
+        }
+
+        modal.classList.remove('hidden');
+    }
+
+    // ইউজার যদি "এখনই স্পিন করুন" প্রেস করে
+    function proceedToSpinBoard() {
+        document.getElementById('spin-welcome-card').classList.add('hidden');
+        document.getElementById('spin-board-card').classList.remove('hidden');
+        drawSpinCanvasWheel();
+    }
+
+    // ইউজার স্পিন না করে কেটে দিলে (X বাটন)
+    function closeSpinModalManually() {
+        // ডাটাবেসে কোনো টাইম আপডেট হবে না! ফলে ইউজার আবার ঢুকলে আবার পপ-আপ আসবে
+        document.getElementById('spin-popup-modal').classList.add('hidden');
+    }
+
+    // ৩. ক্যানভাসে হুবহু স্ক্রিনশটের মতো হুইল তৈরি
+    function drawSpinCanvasWheel() {
+        const canvas = document.getElementById('lucky-wheel-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const numSegments = activeSpinWheelSlots.length;
+        const arc = (2 * Math.PI) / numSegments;
+        const radius = canvas.width / 2;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(wheelCurrentRotationAngle);
+
+        for (let i = 0; i < numSegments; i++) {
+            const angle = i * arc;
+            const slot = activeSpinWheelSlots[i];
+
+            // সেগমেন্ট স্লাইস
+            ctx.beginPath();
+            ctx.fillStyle = slot.color;
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, radius - 2, angle, angle + arc);
+            ctx.lineTo(0, 0);
+            ctx.fill();
+
+            // বর্ডার
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.stroke();
+
+            // টেক্সট (যেমন ৳১, ৳২)
+            ctx.save();
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.rotate(angle + arc / 2);
+            ctx.textAlign = 'right';
+            ctx.fillText(slot.label, radius - 26, 6);
+            ctx.restore();
+        }
+        ctx.restore();
+    }
+
+    // ৪. স্পিন অ্যাকশন ও নিখুঁত এঙ্গেল ক্যালকুলেশন
+    async function executeSpinAction() {
+        if (isSpinWheelRunning || !currentUser) return;
+
+        const spinBtn = document.getElementById('btn-spin-action');
+        const userRef = db.collection('users').doc(currentUser.uid);
+
+        // ভ্যালিডেশন চেক
+        const snap = await userRef.get();
+        const uData = snap.data() || {};
+
+        if (currentSpinMode === 'signup' && uData.hasClaimedSignupSpin === true) {
+            closeSpinModalManually();
+            return Swal.fire('Oops', 'আপনি সাইন-আপ বোনাসটি ইতোমধ্যে গ্রহণ করে ফেলেছেন!', 'warning');
+        }
+
+        if (currentSpinMode === 'daily') {
+            const lastTime = uData.lastDailySpinTime || 0;
+            if (Date.now() - lastTime < 24 * 60 * 60 * 1000) {
+                closeSpinModalManually();
+                return Swal.fire('Oops', '২৪ ঘণ্টার মধ্যে একটির বেশি ডেইলি স্পিন নেওয়া যাবে না!', 'warning');
+            }
+        }
+
+        // উইনিং ওয়েইট (Probability) হিসাব
+        let totalW = 0;
+        activeSpinWheelSlots.forEach(s => totalW += s.weight);
+        let rand = Math.random() * totalW;
+        let selectedIndex = 0;
+        for (let i = 0; i < activeSpinWheelSlots.length; i++) {
+            rand -= activeSpinWheelSlots[i].weight;
+            if (rand <= 0) {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        const wonSlot = activeSpinWheelSlots[selectedIndex];
+        const numSlots = activeSpinWheelSlots.length;
+        const segmentDeg = 360 / numSlots;
+
+        // 🎯 টপ পয়েন্টার (12 o'clock / 270°) এ কাঁটায় কাঁটায় থামার ডিগ্রি সমীকরণ
+        // ক্যানভাসে 0° মানে 3 o'clock। টপ পয়েন্টার হচ্ছে 270° (বা -90°)।
+        const sliceCenterDeg = selectedIndex * segmentDeg + (segmentDeg / 2);
+        const targetStopDeg = (270 - sliceCenterDeg + 360) % 360;
+        const fullRotations = 360 * 7; // ৭ পাক পূর্ণ ঘূর্ণন
+        const finalDeg = fullRotations + targetStopDeg;
+
+        isSpinWheelRunning = true;
+        spinBtn.disabled = true;
+        spinBtn.classList.add('opacity-60');
+
+        const canvas = document.getElementById('lucky-wheel-canvas');
+        canvas.style.transition = 'transform 4.5s cubic-bezier(0.15, 0.9, 0.2, 1)';
+        canvas.style.transform = `rotate(${finalDeg}deg)`;
+
+        setTimeout(async () => {
+            isSpinWheelRunning = false;
+            canvas.style.transition = 'none';
+            wheelCurrentRotationAngle = (finalDeg % 360) * (Math.PI / 180);
+            drawSpinCanvasWheel();
+
+            try {
+                // ফায়ারস্টোর অ্যাটমিক ট্রানজ্যাকশন: টাকা যোগ এবং টাইমস্ট্যাম্প লক
+                await db.runTransaction(async (t) => {
+                    const freshDoc = await t.get(userRef);
+                    const curBal = freshDoc.data()?.balance || 0;
+                    const updates = {
+                        balance: curBal + wonSlot.amount
+                    };
+
+                    if (currentSpinMode === 'signup') {
+                        updates.hasClaimedSignupSpin = true; // জীবনেও আর কোনোদিন আসবে না
+                    } else {
+                        updates.lastDailySpinTime = Date.now(); // ঠিক ২৪ ঘণ্টার জন্য লক
+                    }
+
+                    t.update(userRef, updates);
+                });
+
+                // হিস্টোরিতে লগ রেকর্ড
+                db.collection('spin_rewards').add({
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email || '',
+                    spinType: currentSpinMode,
+                    rewardName: wonSlot.label,
+                    amount: wonSlot.amount,
+                    timestamp: new Date(),
+                    timestampMs: Date.now()
+                }).catch(() => {});
+
+                // ফলাফল প্রদর্শন ও মোডাল বন্ধ
+                document.getElementById('spin-popup-modal').classList.add('hidden');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'অভিনন্দন! 🎉',
+                    html: `আপনি স্পিন করে <b>${wonSlot.label}</b> টাকা জিতেছেন!<br>পুরস্কারের টাকা সরাসরি আপনার ওয়ালেটে যুক্ত হয়েছে।`,
+                    confirmButtonText: 'ধন্যবাদ',
+                    confirmButtonColor: '#1d63ed'
+                });
+
+            } catch (err) {
+                console.error("Spin balance update error:", err);
+                Swal.fire('Error', 'ব্যালেন্স আপডেট করতে ব্যর্থ হয়েছে।', 'error');
+            } finally {
+                spinBtn.disabled = false;
+                spinBtn.classList.remove('opacity-60');
+            }
+        }, 4600);
+    }
+
 </script>
 <!-- 🔐 TOURNAMENT STYLE OTP VERIFICATION MODAL -->
 <div id="otp-verification-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
@@ -3687,6 +4059,73 @@ const num = data[fieldKey] || "Not Available";
         </div>
     </div>
 </div>
+<!-- 🎡 AUTO POPUP SPIN & WIN WHEEL MODAL (NO SEPARATE PAGE) -->
+<div id="spin-popup-modal" class="fixed inset-0 bg-black/75 z-50 hidden flex items-center justify-center p-3 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-5 shadow-2xl border border-gray-100 relative animate-fade-in my-auto">
+        
+        <!-- Close Button (স্পিন না করে কাটলে পরের বার আবার আসবে) -->
+        <button onclick="closeSpinModalManually()" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition z-30">
+            <i class="fas fa-times text-sm"></i>
+        </button>
+
+        <!-- WELCOME BANNER CARD (স্ক্রিনশটের হুবহু ওয়েলকাম পপ-আপ যা প্রথমে শো করে) -->
+        <div id="spin-welcome-card" class="text-center py-2">
+            <div class="w-16 h-16 mx-auto mb-2 flex items-center justify-center text-4xl">
+                🎁
+            </div>
+            <h3 class="text-xl font-extrabold text-gray-800 mb-1" id="spin-modal-main-title">স্বাগতম! 🎉</h3>
+            <p class="text-xs text-gray-600 mb-5 px-3 leading-relaxed" id="spin-modal-sub-title">
+                অ্যাকাউন্ট তৈরি সম্পন্ন। আপনার জন্য একটা <b>ফ্রি স্পিন</b> অপেক্ষা করছে — ঘুরিয়ে বোনাস নিন!
+            </p>
+            <button onclick="proceedToSpinBoard()" class="w-full bg-[#1d63ed] hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+                এখনই স্পিন করুন 🎡
+            </button>
+        </div>
+
+        <!-- WHEEL BOARD CONTAINER (স্ক্রিনশট অনুযায়ী বৃত্তাকার হুইল ও নিয়মাবলী) -->
+        <div id="spin-board-card" class="hidden flex flex-col items-center">
+            
+            <div class="text-center mb-3">
+                <div class="flex items-center justify-center gap-1.5 text-[#1d63ed] font-bold text-base mb-0.5">
+                    <i class="fas fa-sparkles"></i>
+                    <span id="spin-board-heading">Spin & Win</span>
+                </div>
+                <p class="text-[11px] text-gray-500" id="spin-board-subtext">স্পিন করুন, ওয়ালেটে বোনাস নিন — প্রতি অ্যাকাউন্টে একবার।</p>
+            </div>
+
+            <!-- Lucky Wheel Canvas & Top Pointer -->
+            <div class="relative w-60 h-60 my-2 flex items-center justify-center select-none">
+                <!-- Top Arrow Indicator (Top Pointer) -->
+                <div class="absolute -top-1.5 left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[18px] border-t-amber-600 filter drop-shadow"></div>
+
+                <!-- Circular Wheel Canvas -->
+                <canvas id="lucky-wheel-canvas" width="240" height="240" class="rounded-full shadow-md"></canvas>
+                
+                <!-- Center Cap Dot -->
+                <div class="absolute w-8 h-8 rounded-full bg-white shadow-md border-2 border-gray-100 flex items-center justify-center pointer-events-none z-10">
+                    <div class="w-3 h-3 rounded-full bg-[#1d63ed]"></div>
+                </div>
+            </div>
+
+            <!-- Spin Button -->
+            <button id="btn-spin-action" onclick="executeSpinAction()" class="w-full bg-[#1d63ed] hover:bg-blue-700 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg transition text-sm tracking-wide mt-3 mb-4 flex items-center justify-center gap-2">
+                স্পিন করুন 🎡
+            </button>
+
+            <!-- Rules Box -->
+            <div class="w-full bg-gray-50 rounded-xl p-3 border border-gray-100 text-left">
+                <h4 class="font-bold text-gray-700 text-xs mb-1.5">নিয়ম</h4>
+                <ul class="text-[11px] text-gray-600 space-y-1 list-disc list-inside leading-relaxed" id="spin-board-rules">
+                    <li>প্রতিটি অ্যাকাউন্ট একবারই স্পিন করতে পারবে।</li>
+                    <li>জেতা টাকা সরাসরি ওয়ালেট ব্যালেন্সে যোগ হবে।</li>
+                    <li>ব্যালেন্স দিয়ে যেকোনো প্রডাক্ট কেনা যাবে।</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+
 <!-- 🔔 SWEET AUDIO & WEB PUSH PERMISSION MODAL -->
 <audio id="pushPermissionVoiceAudio" preload="auto">
     <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
