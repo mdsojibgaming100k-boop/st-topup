@@ -280,8 +280,9 @@
     </header>
 
     <!-- হিডেন টেক্সট কন্টেইনার (AI এবং ব্যাকগ্রাউন্ড ডাটার জন্য) -->
-    <div id="notice-section" class="hidden">
-        <div id="notice-text">স্বাগতম আমাদের অ্যাপে...</div>
+    <!-- চিরতরে গোপন নোটিশ ডাটা (স্ক্রিনে কখনোই কোনো লেখা শো করবে না) -->
+    <div id="notice-section" style="display: none !important;" class="hidden">
+        <span id="notice-text"></span>
     </div>
 
     <main class="p-3 relative pb-20">
@@ -3101,11 +3102,10 @@
         const navBtn = document.getElementById('nav-' + secId);
         if(navBtn) navBtn.classList.add('active-tab');
         
+        // নোটিশের স্ক্রিন ডিসপ্লে চিরতরে বন্ধ (নোটিশ এখন শুধু পপ-আপে থাকবে)
         const noticeSection = document.getElementById('notice-section');
-        if(secId === 'home') {
-            noticeSection.classList.remove('hidden');
-        } else {
-            noticeSection.classList.add('hidden');
+        if(noticeSection) {
+            noticeSection.style.display = 'none';
         }
         
         if(secId === 'addmoney') {
