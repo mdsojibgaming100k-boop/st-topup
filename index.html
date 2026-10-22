@@ -578,70 +578,7 @@
                 </div>
         </section>
 
-        <!-- 🎡 SPIN & WIN SECTION (MATCHING SCREENSHOT UI) -->
-        <section id="spin-sec" class="hidden animate-fade-in pb-24">
-            <div class="px-4 pt-4 pb-2">
-                <div class="flex items-center gap-2 mb-1">
-                    <i class="fas fa-sparkles text-sky-500 text-lg"></i>
-                    <h2 class="text-lg font-bold text-gray-800" id="spin-page-main-title">Spin & Win</h2>
-                </div>
-                <p class="text-xs text-gray-500" id="spin-page-sub-title">স্পিন করুন, ওয়ালেটে বোনাস নিন — প্রতি অ্যাকাউন্টে একবার।</p>
-            </div>
-
-            <!-- Tab Switcher: Welcome Spin vs Daily Spin -->
-            <div class="px-4 mb-3">
-                <div class="bg-gray-200 p-1 rounded-xl flex gap-1">
-                    <button id="tab-btn-signup-spin" onclick="switchSpinType('signup')" class="flex-1 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-800 shadow-sm transition">
-                        🎁 ওয়েলকাম স্পিন
-                    </button>
-                    <button id="tab-btn-daily-spin" onclick="switchSpinType('daily')" class="flex-1 py-1.5 rounded-lg text-xs font-bold text-gray-600 transition">
-                        ⚡ ডেইলি ফ্রি স্পিন
-                    </button>
-                </div>
-            </div>
-
-            <!-- Spin Board Card (Screenshot Design) -->
-            <div class="px-4 mb-4">
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col items-center">
-                    
-                    <!-- Lucky Wheel Canvas & Pointer Container -->
-                    <div class="relative w-64 h-64 sm:w-72 sm:h-72 my-2 flex items-center justify-center">
-                        <!-- Top Indicator Triangle Pointer -->
-                        <div class="absolute top-0 left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[22px] border-t-amber-600 filter drop-shadow"></div>
-
-                        <!-- Canvas Wheel -->
-                        <canvas id="lucky-wheel-canvas" width="280" height="280" class="lucky-wheel-canvas rounded-full shadow-inner"></canvas>
-                        
-                        <!-- Center Pin Cap -->
-                        <div class="absolute w-9 h-9 rounded-full bg-white shadow-md border-2 border-gray-200 flex items-center justify-center pointer-events-none z-10">
-                            <div class="w-3.5 h-3.5 rounded-full bg-sky-500"></div>
-                        </div>
-                    </div>
-
-                    <!-- Spin Cooldown Timer Badge -->
-                    <div id="daily-spin-timer-badge" class="hidden mb-3 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-bold text-amber-700">
-                        <i class="far fa-clock mr-1"></i> পরবর্তী স্পিন: <span id="daily-spin-countdown" class="font-mono">--:--:--</span>
-                    </div>
-
-                    <!-- Action Spin Button -->
-                    <button id="btn-spin-action" onclick="executeSpinAction()" class="w-full bg-[#1d63ed] hover:bg-blue-700 active:scale-95 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm uppercase tracking-wider mt-2">
-                        স্পিন করুন 🎡
-                    </button>
-                </div>
-            </div>
-
-            <!-- Rules Card (Screenshot Design) -->
-            <div class="px-4">
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-800 text-sm mb-3">নিয়মাবলী</h3>
-                    <ul class="text-xs text-gray-600 space-y-2 list-disc list-inside leading-relaxed" id="spin-rules-list">
-                        <li>প্রতিটি অ্যাকাউন্ট একবারই স্পিন করতে পারবে।</li>
-                        <li>জেতা টাকা সরাসরি ওয়ালেট ব্যালেন্সে যোগ হবে।</li>
-                        <li>ব্যালেন্স দিয়ে যেকোনো প্রডাক্ট কেনা যাবে।</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
+        
 
         <!-- 🎁 MY REWARDS SECTION (USER DASHBOARD) -->
         <section id="myrewards-sec" class="hidden animate-fade-in pb-24">
@@ -1216,12 +1153,7 @@
                 <span class="text-[9px] font-semibold tracking-wide">Home</span>
             </button>
             
-            <button onclick="showSec('spin')" class="nav-item flex flex-col items-center gap-1 text-gray-700 transition-all duration-300 hover:text-sky-500 group" id="nav-spin">
-                <div class="w-5 h-5 flex items-center justify-center text-amber-500 text-lg group-hover:rotate-45 transition-transform duration-300">
-                    <i class="fas fa-dharmachakra"></i>
-                </div>
-                <span class="text-[9px] font-semibold tracking-wide">Spin & Win</span>
-            </button>
+            
             
             <button onclick="showSec('addmoney')" class="nav-item flex flex-col items-center gap-1 text-gray-700 transition-all duration-300 hover:text-sky-500 group" id="nav-addmoney">
                 <img src="https://img.icons8.com/?size=100&id=95782&format=png&color=000000" class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" alt="Add Money">
@@ -2124,7 +2056,7 @@
 
             Swal.fire('Success', 'Account Verified & Created Successfully!', 'success');
             showSec('home');
-            setTimeout(() => { triggerSignupWelcomeModalCheck(cred.user.uid); }, 1000);
+            setTimeout(() => { checkAndTriggerAutoSpinPopup(cred.user.uid); }, 1200);
         } catch(err) {
             Swal.fire('Registration Error', err.message, 'error');
         }
@@ -4305,6 +4237,7 @@ Instructions:
         });
     }
 
+    // 🎡 সাইন-আপে ১ বার লাইফ-টাইম এবং প্রতি ২৪ ঘণ্টা পর পর জোরপূর্বক অটো পপ-আপ ইঞ্জিন
     async function checkAndTriggerAutoSpinPopup(uid) {
         if (!uid) return;
         try {
@@ -4312,16 +4245,19 @@ Instructions:
             if (!userDoc.exists) return;
             const data = userDoc.data();
 
+            // ১. অ্যাকাউন্ট খোলার পর প্রথমবার সাইন-আপ বোনাস স্পিন (সারাজীবনে একবার)
             if (data.hasClaimedSignupSpin !== true) {
                 currentSpinMode = 'signup';
                 openSpinModalDirectly('signup');
                 return;
             }
 
+            // ২. ডেইলি বোনাস: শেষ স্পিন করার পর ২৪ ঘণ্টা পার হয়েছে কিনা যাচাই
             const lastDailyTime = data.lastDailySpinTime || 0;
             const now = Date.now();
             const twentyFourHours = 24 * 60 * 60 * 1000;
 
+            // যদি ২৪ ঘণ্টা পার হয়ে যায়, তবে যতক্ষণ না স্পিন করবে ততবার ঢুকলেই সামনে ভেসে উঠবে
             if (now - lastDailyTime >= twentyFourHours) {
                 currentSpinMode = 'daily';
                 openSpinModalDirectly('daily');
@@ -4360,23 +4296,23 @@ Instructions:
 
         if (mode === 'signup') {
             mainTitle.innerText = "স্বাগতম! 🎉";
-            subTitle.innerHTML = "অ্যাকাউন্ট তৈরি সম্পন্ন। আপনার জন্য একটা <b>ফ্রি স্পিন</b> অপেক্ষা করছে — ঘুরিয়ে বোনাস নিন!";
-            boardHeading.innerText = "Spin & Win";
-            boardSubtext.innerText = "স্পিন করুন, ওয়ালেটে বোনাস নিন — প্রতি অ্যাকাউন্টে একবার।";
+            subTitle.innerHTML = "অ্যাকাউন্ট তৈরি সম্পন্ন! আপনার জন্য ১টি <b>ওয়েলকাম ফ্রি স্পিন</b> রয়েছে — স্পিন করে বোনাস জিতে নিন!";
+            boardHeading.innerText = "Welcome Free Spin 🎁";
+            boardSubtext.innerText = "শুধুমাত্র নতুন অ্যাকাউন্টের জন্য এই বিশেষ উপহার (১ বার)।";
             rulesList.innerHTML = `
-                <li>প্রতিটি অ্যাকাউন্ট একবারই স্পিন করতে পারবে।</li>
-                <li>জেতা টাকা সরাসরি ওয়ালেট ব্যালেন্সে যোগ হবে।</li>
-                <li>ব্যালেন্স দিয়ে যেকোনো প্রডাক্ট কেনা যাবে।</li>
+                <li>এই ওয়েলকাম স্পিনটি প্রতিটি অ্যাকাউন্ট শুধু একবারই পাবে।</li>
+                <li>পুরস্কারের টাকা সরাসরি ওয়ালেট ব্যালেন্সে জমা হবে।</li>
+                <li>এই ব্যালেন্স দিয়ে যেকোনো টপ-আপ কেনা যাবে।</li>
             `;
             welcomeCard.classList.remove('hidden');
             boardCard.classList.add('hidden');
         } else {
-            boardHeading.innerText = "Daily Free Spin ⚡";
-            boardSubtext.innerText = "প্রতি ২৪ ঘণ্টায় একবার ফ্রি স্পিন করে জিতে নিন আকর্ষণীয় বোনাস!";
+            boardHeading.innerText = "ডেইলি ফ্রি স্পিন ⚡";
+            boardSubtext.innerText = "আজকের ফ্রি স্পিনটি ঘুরিয়ে লুফে নিন আকর্ষণীয় বোনাস!";
             rulesList.innerHTML = `
-                <li>প্রতি ২৪ ঘণ্টায় একবার ফ্রি স্পিন পাওয়া যাবে।</li>
-                <li>জেতা টাকা সাথে সাথে ব্যালেন্সে যুক্ত হবে।</li>
-                <li>স্পিন না দিয়ে কেটে দিলে পুনরায় প্রবেশের সময় আবার পপ-আপ আসবে।</li>
+                <li>প্রতি ২৪ ঘণ্টায় একবার ফ্রি ডেইলি স্পিন দেওয়া হয়।</li>
+                <li>স্পিন না করা পর্যন্ত প্রতিবার অ্যাপে ঢোকার সাথে সাথে এটি আসবে।</li>
+                <li>একবার স্পিন করলে পরবর্তী ২৪ ঘণ্টা পর পুনরায় আসবে।</li>
             `;
             welcomeCard.classList.add('hidden');
             boardCard.classList.remove('hidden');
@@ -4532,8 +4468,11 @@ Instructions:
                     };
 
                     if (currentSpinMode === 'signup') {
+                        // সাইন-আপ স্পিন চিরতরে ক্লেমড হয়ে গেল এবং পরবর্তী ২৪ ঘণ্টার জন্য ডেইলি স্পিন টাইমার চালু হলো
                         updates.hasClaimedSignupSpin = true;
+                        updates.lastDailySpinTime = Date.now();
                     } else {
+                        // ডেইলি স্পিনের পর ঠিক পরবর্তী ২৪ ঘণ্টার জন্য বন্ধ থাকবে
                         updates.lastDailySpinTime = Date.now();
                     }
 
