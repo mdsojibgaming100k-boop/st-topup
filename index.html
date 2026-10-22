@@ -279,16 +279,9 @@
         </div>
     </header>
 
-    <div id="notice-section" class="mb-0 px-3">
-        <div class="bg-sky-500 text-white p-4 relative">
-            <button onclick="this.parentElement.parentElement.style.display='none'" class="absolute top-2 right-2 text-white/80 hover:text-white transition">
-                <i class="fas fa-times text-sm"></i>
-            </button>
-            <div class="pr-6">
-                <div class="font-bold text-sm mb-1">Notice</div>
-                <div id="notice-text" class="text-sm">স্বাগতম আমাদের অ্যাপে...</div>
-            </div>
-        </div>
+    <!-- হিডেন টেক্সট কন্টেইনার (AI এবং ব্যাকগ্রাউন্ড ডাটার জন্য) -->
+    <div id="notice-section" class="hidden">
+        <div id="notice-text">স্বাগতম আমাদের অ্যাপে...</div>
     </div>
 
     <main class="p-3 relative pb-20">
@@ -1553,6 +1546,17 @@
         `;
     }
 
+    // 📢 নোটিশ পপ-আপ ওপেন ও ক্লোজ ফাংশন (যতবার সাইটে ঢুকবে ততবার আসবে)
+    function openNoticePopup() {
+        const modal = document.getElementById('notice-popup-modal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeNoticePopup() {
+        const modal = document.getElementById('notice-popup-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
     function loadGlobalSettings() {
         db.collection("settings").doc("general").onSnapshot((doc) => {
             if (doc.exists) {
@@ -1602,7 +1606,16 @@
                 document.getElementById('pay-site-logo-small').src = logoUrl;
                 document.title = siteName;
 
-                if(data.notice) document.getElementById('notice-text').innerText = data.notice;
+                if(data.notice) {
+                    const noticeText = data.notice;
+                    const noticeEl = document.getElementById('notice-text');
+                    const popupBody = document.getElementById('notice-popup-body');
+                    if (noticeEl) noticeEl.innerText = noticeText;
+                    if (popupBody) popupBody.innerText = noticeText;
+                    
+                    // 📢 প্রতিবার সাইট বা অ্যাপে ঢোকার সাথে সাথে নোটিশ পপ-আপ ভেসে উঠবে
+                    openNoticePopup();
+                }
                 const waNum = data.whatsapp ? String(data.whatsapp).replace(/\s/g, '') : "0";
                 const tgLink = data.telegram || "#";
                 const appLink = data.appLink || "#";
@@ -4042,7 +4055,7 @@ const num = data[fieldKey] || "Not Available";
             ctx += `\n[ব্যবহারকারী বর্তমানে অ্যাকাউন্টে লগইন করা নেই। তাকে প্রয়োজনে লগইন করার পরামর্শ দিন]\n`;
         }
 
-        ctx += `\n[নিয়মাবলী]: টাকা যোগ করতে Add Money-তে গিয়ে সেন্ড মানি করে TrxID দিতে হবে। স্পিন হুইলে ওয়েলকাম স্পিন একবার এবং ডেইলি স্পিন প্রতি ২৪ ঘণ্টায় একবার পাওয়া যায়।`;
+        ctx += `\n[নিয়মাবলী]: টাকা যোগ করতে Add Money-তে গিয়ে সেন্ড মানি করে TrxID দিতে হবে। অর্ডার সাবমিট করলে ত আমাদের বটা অটোমেটিক ভেরিফাই করে সম্পন্ন করে।`;
         return ctx;
     }
 
@@ -4146,8 +4159,6 @@ Whenever the user asks about a specific feature, how to do something, or where t
 - নতুন অ্যাকাউন্ট রেজিস্টার করতে চাইলে: [রেজিস্টার পেজে যান](/#register)
 - পাসওয়ার্ড ভুলে গেলে রিসেট করতে: [পাসওয়ার্ড রিসেট পেজ](/#forgot)
 - টাকা অ্যাড / ডিপোজিট করতে: [টাকা অ্যাড করতে এখানে ক্লিক করুন](/#addmoney)
-- ফ্রি স্পিন ঘুরিয়ে বোনাস নিতে: [স্পিন ও উইন পেজ](/#spin)
-- স্পিনের পুরস্কার দেখতে: [আমার রিওয়ার্ড হিস্টোরি](/#rewards)
 - আগের অর্ডার ও ভাউচার দেখতে: [অর্ডার হিস্টোরি দেখুন](/#history)
 - অ্যাকাউন্ট বা ব্যালেন্স দেখতে: [আমার প্রোফাইল / অ্যাকাউন্ট](/#account)
 - ভিডিও টিউটোরিয়াল দেখতে: [ভিডিও টিউটোরিয়াল পেজ](/#tutorials)
@@ -4156,11 +4167,12 @@ Whenever the user asks about a specific feature, how to do something, or where t
 
 Instructions:
 1. Always give 100% accurate information based on the live database provided above.
-2. If the user asks about their balance, check the live balance above and reply with their balance, and provide the [টাকা অ্যাড](/#addmoney) link if balance is low.
-3. If the user asks about their orders, check their recent orders, explain the status, and provide the [অর্ডার হিস্টোরি](/#history) link.
-4. If the user asks how to add money, clearly explain Send Money to the payment numbers and entering TrxID, and provide the [টাকা অ্যাড করুন](/#addmoney) link.
-5. If the user asks about games, recharge, spin, account, or registration, explain briefly and ALWAYS provide the appropriate clickable link.
-6. For general, academic, or coding questions, provide complete and professional answers.`;
+2. When greeting or introducing yourself, be warm and helpful. Do NOT mention Spin & Win or provide spin links at all.
+3. If the user asks about their balance, check the live balance above and reply with their balance, and provide the [টাকা অ্যাড](/#addmoney) link if balance is low.
+4. If the user asks about their orders, check their recent orders, explain the status, and provide the [অর্ডার হিস্টোরি](/#history) link.
+5. If the user asks how to add money, clearly explain Send Money to the payment numbers and entering TrxID, and provide the [টাকা অ্যাড করুন](/#addmoney) link.
+6. If the user asks about games, recharge, account, or registration, explain briefly and ALWAYS provide the appropriate clickable link.
+7. For general, academic, or coding questions, provide complete and professional answers.`;
 
                 const payload = {
                     systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -4604,6 +4616,41 @@ Instructions:
             </div>
         </div>
 
+    </div>
+</div>
+
+<!-- 📢 PREMIUM NOTICE POPUP MODAL (প্রতিবার সাইট বা অ্যাপে প্রবেশের সময় আসবে) -->
+<div id="notice-popup-modal" class="fixed inset-0 bg-black/75 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-all duration-300">
+    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-gray-100 relative animate-fade-in flex flex-col max-h-[85vh]">
+        
+        <!-- Header -->
+        <div class="bg-sky-500 p-4 text-white flex items-center justify-between relative shadow-sm" id="notice-modal-header">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner text-lg">
+                    📢
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-base tracking-wide leading-tight">জরুরি নোটিশ</h3>
+                    <p class="text-[10px] text-white/80 font-medium">অর্ডার করার পূর্বে অবশ্যই মনোযোগ দিয়ে পড়ুন</p>
+                </div>
+            </div>
+            <button onclick="closeNoticePopup()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition active:scale-95">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Scrollable Notice Content (ইমোজি ও লাইন ব্রেক সহ সুন্দরভাবে শো হবে) -->
+        <div class="p-5 overflow-y-auto text-gray-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line space-y-2 select-text" id="notice-popup-body">
+            স্বাগতম আমাদের অ্যাপে...
+        </div>
+
+        <!-- Bottom Action Button -->
+        <div class="p-3.5 bg-gray-50 border-t border-gray-100 flex items-center">
+            <button onclick="closeNoticePopup()" class="w-full bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-bold py-3 rounded-2xl text-xs tracking-wider transition shadow-md flex items-center justify-center gap-2">
+                <span>বুঝেছি / ঠিক আছে</span>
+                <i class="fas fa-check-circle"></i>
+            </button>
+        </div>
     </div>
 </div>
 
