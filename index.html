@@ -425,11 +425,21 @@
         </section>
 
         <section id="home-sec" class="animate-fade-in pb-8">
-            <div id="banner-container" class="mb-6 overflow-hidden shadow-md h-44 bg-gray-200 relative group">
+            <!-- 🎨 MODERN SLEEK BANNER SLIDER WITH SKELETON LOADER -->
+            <div id="banner-container" class="mb-6 overflow-hidden rounded-2xl shadow-sm h-44 bg-slate-100 relative group border border-slate-200/80 mx-1">
                 <div id="slider-wrapper" class="flex h-full w-full transition-transform duration-500 ease-out">
-                    <img src="https://placehold.co/600x300/29b6f6/FFF?text=Loading..." class="w-full h-full object-cover flex-shrink-0">
+                    <!-- প্রিমিয়াম শিমার লোডার কার্ড -->
+                    <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-r from-slate-200 via-sky-50 to-slate-200 animate-pulse relative select-none">
+                        <div class="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-center mb-2.5 border border-white">
+                            <i class="fas fa-images text-sky-500 text-xl"></i>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-sky-500 animate-ping"></span>
+                            <span class="text-xs font-bold tracking-wider text-slate-500 uppercase">লোড হচ্ছে...</span>
+                        </div>
+                    </div>
                 </div>
-                <div id="slider-dots" class="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-10"></div>
+                <div id="slider-dots" class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none"></div>
             </div>
 
             <div class="grid grid-cols-3 gap-3 mb-5 px-2">
