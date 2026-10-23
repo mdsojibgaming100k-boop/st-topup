@@ -1448,31 +1448,43 @@
         }
     }
 
+    // 👑 নোটিফিকেশন কনফিগ ও সেটিংস
+    let autoPushSettings = {
+        order_push: true,
+        deposit_push: true
+    };
+    let adminOneSignalApiKey = "";
+    let adminOneSignalAppId = "";
+
     // 👑 অ্যাডমিনের ফোনের জন্য High Priority (priority: 10) অর্ডার অ্যালার্ট
     function notifyAdminNewOrder(title, message, type = 'order') {
-        if (type === 'order' && autoPushSettings.order_push === false) return;
-        if (type === 'deposit' && autoPushSettings.deposit_push === false) return;
+        try {
+            if (typeof autoPushSettings !== 'undefined' && autoPushSettings) {
+                if (type === 'order' && autoPushSettings.order_push === false) return;
+                if (type === 'deposit' && autoPushSettings.deposit_push === false) return;
+            }
 
-        const targetApiKey = adminOneSignalApiKey;
-        const targetAppId = adminOneSignalAppId || userOneSignalAppId;
-        if (!targetApiKey || !targetAppId) return;
+            const targetApiKey = typeof adminOneSignalApiKey !== 'undefined' ? adminOneSignalApiKey : "";
+            const targetAppId = (typeof adminOneSignalAppId !== 'undefined' && adminOneSignalAppId) ? adminOneSignalAppId : (typeof userOneSignalAppId !== 'undefined' ? userOneSignalAppId : "");
+            if (!targetApiKey || !targetAppId) return;
 
-        // 🚀 অ্যাডমিনের ফোন ঘুমন্ত/লক থাকলেও সাথে সাথে বাজানোর সেটিংস
-        let payload = {
-            app_id: targetAppId,
-            headings: { en: title },
-            contents: { en: message },
-            priority: 10,  // High Priority: অ্যাডমিনের ফোনে সাথে সাথে বেজে উঠবে
-            ttl: 259200,    // ৩ দিন ব্যাকগ্রাউন্ড কিউ
-            android_visibility: 1,
-            content_available: true,
-            include_aliases: { external_id: ["admin_device"] },
-            target_channel: "push",
-            data: { type: type, timestamp: Date.now() }
-        };
+            let payload = {
+                app_id: targetAppId,
+                headings: { en: title },
+                contents: { en: message },
+                priority: 10,
+                ttl: 259200,
+                android_visibility: 1,
+                content_available: true,
+                include_aliases: { external_id: ["admin_device"] },
+                target_channel: "push",
+                data: { type: type, timestamp: Date.now() }
+            };
 
-        // ব্যাকগ্রাউন্ডে নন-ব্লকিং এক্সিকিউশন (ইউজারের অর্ডার লোডিং আটকে থাকবে না)
-        executeOneSignalPost(payload, targetApiKey).catch(() => {});
+            executeOneSignalPost(payload, targetApiKey).catch(() => {});
+        } catch(err) {
+            console.warn("OneSignal push notification skipped:", err);
+        }
     }
     let selectedGameType = 'uid';
     let gamesData = {};
